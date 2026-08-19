@@ -9,13 +9,13 @@ const CalendarDayCell = ({ date, isToday, isSelected, isCurrentMonth, tasks, onC
   return (
     <div 
       onClick={onClick}
-      className={`min-h-[100px] bg-slate-800 p-2 cursor-pointer transition-colors relative hover:bg-slate-700/50
+      className={`min-h-[60px] md:min-h-[90px] bg-slate-800 p-1 md:p-2 cursor-pointer transition-colors relative hover:bg-slate-700/50
         ${!isCurrentMonth ? 'opacity-40' : ''}
-        ${isSelected ? 'bg-slate-700/70' : ''}
+        ${isSelected ? 'bg-slate-700/70 border-b-2 border-indigo-400' : ''}
       `}
     >
-      <div className="flex justify-between items-start mb-2">
-        <span className={`w-7 h-7 flex items-center justify-center rounded-full text-sm
+      <div className="flex justify-between items-start mb-1">
+        <span className={`w-5 h-5 md:w-7 md:h-7 flex items-center justify-center rounded-full text-xs md:text-sm
           ${isToday ? 'bg-indigo-500 text-white font-bold' : 'text-slate-300'}
         `}>
           {format(date, 'd')}
@@ -26,12 +26,12 @@ const CalendarDayCell = ({ date, isToday, isSelected, isCurrentMonth, tasks, onC
         {visibleTasks.map((t, i) => (
           <div 
             key={i} 
-            className="w-2 h-2 rounded-full" 
+            className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full" 
             style={{ backgroundColor: CATEGORY_COLORS[t.scheduleTask.category] || '#94a3b8' }}
             title={t.scheduleTask.title}
           />
         ))}
-        {extraTasks > 0 && <span className="text-[10px] text-slate-500">+{extraTasks}</span>}
+        {extraTasks > 0 && <span className="text-[9px] md:text-[10px] text-slate-500 font-bold">+{extraTasks}</span>}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import CalendarDayCell from './CalendarDayCell';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay } from 'date-fns';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay } from 'date-fns';
 
 const CalendarGrid = ({ selectedDate, onSelectDate, tasksByDate, currentMonth, setCurrentMonth }) => {
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
@@ -14,24 +14,23 @@ const CalendarGrid = ({ selectedDate, onSelectDate, tasksByDate, currentMonth, s
   const endDate = new Date(monthEnd);
   endDate.setDate(endDate.getDate() + (6 - endDate.getDay())); // End on Saturday
 
-  const dateFormat = "d";
   const days = eachDayOfInterval({ start: startDate, end: endDate });
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-white">{format(currentMonth, "MMMM yyyy")}</h2>
+    <div className="bg-slate-800 border border-slate-700 rounded-xl p-3 md:p-6">
+      <div className="flex justify-between items-center mb-4 md:mb-6">
+        <h2 className="text-lg md:text-xl font-bold text-white">{format(currentMonth, "MMMM yyyy")}</h2>
         <div className="flex gap-2">
-          <button onClick={prevMonth} className="p-2 rounded bg-slate-700 text-slate-300 hover:text-white"><ChevronLeft size={20} /></button>
-          <button onClick={nextMonth} className="p-2 rounded bg-slate-700 text-slate-300 hover:text-white"><ChevronRight size={20} /></button>
+          <button onClick={prevMonth} className="p-1.5 md:p-2 rounded bg-slate-700 text-slate-300 hover:text-white"><ChevronLeft size={18} /></button>
+          <button onClick={nextMonth} className="p-1.5 md:p-2 rounded bg-slate-700 text-slate-300 hover:text-white"><ChevronRight size={18} /></button>
         </div>
       </div>
 
       <div className="grid grid-cols-7 gap-px bg-slate-700 rounded-lg overflow-hidden border border-slate-700">
         {weekDays.map(day => (
-          <div key={day} className="bg-slate-800 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <div key={day} className="bg-slate-800 py-2 md:py-3 text-center text-[10px] md:text-xs font-semibold text-slate-400 uppercase tracking-wider">
             {day}
           </div>
         ))}
