@@ -330,21 +330,19 @@ console.log("Result:", output);
 `;
 };
 
-// Google Gemini API caller (Super Fast & Free 15 RPM)
+// Google Gemini API caller (Gemini 2.5 Flash with strict JSON Schema output)
 const callGeminiMCQ = async ({ apiKey, prompt, count, focusDomain }) => {
   const startTime = Date.now();
   console.log(`🤖 [Gemini AI] Requesting ${count} MCQs (Focus: ${focusDomain}) on "${prompt}"...`);
 
-  const systemPrompt = `You are a Principal Technical Interviewer creating questions for a placement exam.
-Generate exactly ${count} UNIQUE multiple choice questions for topic: "${prompt}".
-Focus specifically on: ${focusDomain}.
+  const systemPrompt = `You are a Principal Technical Interviewer creating authentic placement questions.
+Generate exactly ${count} UNIQUE, non-repeating multiple choice questions for topic: "${prompt}".
+Focus domain: ${focusDomain}.
 RULES:
-1. NO DUPLICATE QUESTIONS. Every question must test a distinct sub-concept or code problem.
+1. NO DUPLICATES. Each question must test a distinct concept, syntax, or edge case.
 2. PLAUSIBLE OPTIONS: All 4 options (A, B, C, D) must be realistic technical terms.
-3. RANDOMIZE ANSWER KEYS: Distribute correct answers across indices 0, 1, 2, 3 evenly.
-4. ONLY VALID JSON ARRAY OF OBJECTS. No backticks, no markdown, no conversational text.
-
-JSON Schema:
+3. BALANCED ANSWER KEYS: Randomly distribute correct answers across indices 0, 1, 2, 3.
+4. Output valid JSON array matching the schema:
 [
   {
     "question": "Question statement?",
@@ -354,17 +352,18 @@ JSON Schema:
 ]`;
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [
-          { role: 'user', parts: [{ text: `${systemPrompt}\n\nTask: Generate ${count} MCQs for ${prompt}` }] }
+          { role: 'user', parts: [{ text: `${systemPrompt}\n\nTask: Generate exactly ${count} MCQs for ${prompt}` }] }
         ],
         generationConfig: {
-          temperature: 0.6,
-          maxOutputTokens: 3000
+          responseMimeType: 'application/json',
+          temperature: 0.5,
+          maxOutputTokens: 8192
         }
       })
     });
@@ -396,7 +395,7 @@ JSON Schema:
   }
 };
 
-// Groq API caller (500+ tokens/sec LLaMA-3.1-8B-Instant)
+// Groq API caller
 const callGroqMCQ = async ({ apiKey, prompt, count, focusDomain }) => {
   const startTime = Date.now();
   console.log(`⚡ [Groq AI] Requesting ${count} MCQs (Focus: ${focusDomain}) on "${prompt}"...`);
@@ -427,7 +426,7 @@ JSON Schema:
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: 'openai/gpt-oss-120b',
         messages: [
           { role: 'system', content: systemInstruction },
           { role: 'user', content: `Generate ${count} diverse MCQs on ${prompt}.` }
@@ -534,7 +533,7 @@ JSON Schema:
 };
 
 // @route   POST /api/ai/generate-mcq
-// @desc    Multi-Provider Fast & Accountable MCQ Generator (Gemini, Groq, Hugging Face with auto-fallback)
+// @desc    Multi-Provider Fast & Accountable MCQ Generator (Gemini 2.5 Flash, Groq, Hugging Face with auto-fallback)
 router.post('/generate-mcq', async (req, res) => {
   const reqStart = Date.now();
   try {
@@ -556,7 +555,7 @@ router.post('/generate-mcq', async (req, res) => {
     let allGeneratedMCQs = [];
     let providerUsed = 'none';
 
-    // 1. Try Gemini API first if configured
+    // 1. Try Google Gemini 2.5 Flash first if configured (Super fast, high precision)
     if (geminiKey && allGeneratedMCQs.length < count) {
       try {
         if (count > 10) {
@@ -569,7 +568,7 @@ router.post('/generate-mcq', async (req, res) => {
         } else {
           allGeneratedMCQs = await callGeminiMCQ({ apiKey: geminiKey, prompt, count, focusDomain: 'Comprehensive Concepts & Code Analysis' });
         }
-        if (allGeneratedMCQs.length > 0) providerUsed = 'google-gemini';
+        if (allGeneratedMCQs.length > 0) providerUsed = 'google-gemini-2.5-flash';
       } catch (gemErr) {
         console.error('Gemini attempt failed, falling back...');
       }
@@ -588,7 +587,7 @@ router.post('/generate-mcq', async (req, res) => {
         } else {
           allGeneratedMCQs = await callGroqMCQ({ apiKey: groqKey, prompt, count, focusDomain: 'Comprehensive Concepts & Code Analysis' });
         }
-        if (allGeneratedMCQs.length > 0) providerUsed = 'groq-llama3.1';
+        if (allGeneratedMCQs.length > 0) providerUsed = 'groq-ai';
       } catch (groqErr) {
         console.error('Groq attempt failed, falling back...');
       }
@@ -675,7 +674,7 @@ router.post('/generate-mcq', async (req, res) => {
 });
 
 // @route   POST /api/ai/generate-reading
-// @desc    Generate structured study reading material with AI (Gemini, Groq, or Hugging Face)
+// @desc    Generate structured study reading material with AI (Gemini 2.5 Flash, Groq, or Hugging Face)
 router.post('/generate-reading', async (req, res) => {
   const reqStart = Date.now();
   try {
@@ -707,10 +706,10 @@ Structure:
 ## Real-World Code & Practical Examples
 ## Industry Applications & Common Interview Questions`;
 
-    // 1. Try Gemini
+    // 1. Try Google Gemini 2.5 Flash
     if (geminiKey && !generatedContent) {
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
         const response = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -718,13 +717,13 @@ Structure:
             contents: [
               { role: 'user', parts: [{ text: `${systemInstruction}\n\nTask: Explain ${prompt} in detail with practical examples and code.` }] }
             ],
-            generationConfig: { temperature: 0.4, maxOutputTokens: 3000 }
+            generationConfig: { temperature: 0.4, maxOutputTokens: 8192 }
           })
         });
         if (response.ok) {
           const data = await response.json();
           generatedContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          if (generatedContent) providerUsed = 'google-gemini';
+          if (generatedContent) providerUsed = 'google-gemini-2.5-flash';
         }
       } catch (err) {
         console.error('Gemini reading generation failed, trying next...');
@@ -741,7 +740,7 @@ Structure:
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'llama-3.1-8b-instant',
+            model: 'openai/gpt-oss-120b',
             messages: [
               { role: 'system', content: systemInstruction },
               { role: 'user', content: `Explain ${prompt} in detail with practical examples, code blocks, and interview notes.` }
@@ -753,7 +752,7 @@ Structure:
         if (response.ok) {
           const data = await response.json();
           generatedContent = data.choices?.[0]?.message?.content || '';
-          if (generatedContent) providerUsed = 'groq-llama3.1';
+          if (generatedContent) providerUsed = 'groq-ai';
         }
       } catch (err) {
         console.error('Groq reading generation failed, trying next...');
