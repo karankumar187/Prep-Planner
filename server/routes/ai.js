@@ -35,7 +35,6 @@ const deduplicateMCQs = (mcqs) => {
   for (const item of mcqs) {
     if (!item || !item.question || !Array.isArray(item.options) || item.options.length < 4) continue;
     
-    // Normalize question stem for comparison
     const normalizedStem = item.question.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 45);
     if (!seenStems.has(normalizedStem)) {
       seenStems.add(normalizedStem);
@@ -46,7 +45,7 @@ const deduplicateMCQs = (mcqs) => {
   return uniqueList;
 };
 
-// Comprehensive Fallback Question Bank covering diverse topics without duplicates
+// Comprehensive Fallback Question Bank covering diverse topics
 const generateDiverseFallbackMCQs = (prompt, numQuestions) => {
   const topic = prompt.trim();
   const bank = [
@@ -61,7 +60,7 @@ const generateDiverseFallbackMCQs = (prompt, numQuestions) => {
       correct: 0
     },
     {
-      q: `When analyzing the computational complexity related to ${topic}, which characteristic is typical?`,
+      q: `When analyzing computational complexity related to ${topic}, which characteristic is typical?`,
       opts: [
         `Optimal implementations target logarithmic O(log N) or linearithmic O(N log N) bounds`,
         `All operations unconditionally require exponential O(2^N) runtime`,
@@ -322,10 +321,144 @@ console.log("Result:", output);
 `;
 };
 
-// Helper to make a single Hugging Face Chat Completion request for a subset of questions
+// Google Gemini API caller (Super Fast & Free 15 RPM)
+const callGeminiMCQ = async ({ apiKey, prompt, count, focusDomain }) => {
+  const startTime = Date.now();
+  console.log(`🤖 [Gemini AI] Requesting ${count} MCQs (Focus: ${focusDomain}) on "${prompt}"...`);
+
+  const systemPrompt = `You are a Principal Technical Interviewer creating questions for a placement exam.
+Generate exactly ${count} UNIQUE multiple choice questions for topic: "${prompt}".
+Focus specifically on: ${focusDomain}.
+RULES:
+1. NO DUPLICATE QUESTIONS. Every question must test a distinct sub-concept or code problem.
+2. PLAUSIBLE OPTIONS: All 4 options (A, B, C, D) must be realistic technical terms.
+3. RANDOMIZE ANSWER KEYS: Distribute correct answers across indices 0, 1, 2, 3 evenly.
+4. ONLY VALID JSON ARRAY OF OBJECTS. No backticks, no markdown, no conversational text.
+
+JSON Schema:
+[
+  {
+    "question": "Question statement?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctOption": 2
+  }
+]`;
+
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          { role: 'user', parts: [{ text: `${systemPrompt}\n\nTask: Generate ${count} MCQs for ${prompt}` }] }
+        ],
+        generationConfig: {
+          temperature: 0.6,
+          maxOutputTokens: 3000
+        }
+      })
+    });
+
+    const elapsed = Date.now() - startTime;
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`❌ [Gemini Error HTTP ${response.status}] (${elapsed}ms):`, errText);
+      return [];
+    }
+
+    const data = await response.json();
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    console.log(`✅ [Gemini AI] Received response (${elapsed}ms, ${rawText.length} chars)`);
+
+    let parsed = [];
+    const jsonStart = rawText.indexOf('[');
+    const jsonEnd = rawText.lastIndexOf(']');
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      parsed = JSON.parse(rawText.substring(jsonStart, jsonEnd + 1));
+    } else {
+      parsed = JSON.parse(rawText);
+    }
+
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.error(`⚠️ [Gemini Exception] (${Date.now() - startTime}ms):`, err.message);
+    return [];
+  }
+};
+
+// Groq API caller (500+ tokens/sec LLaMA-3.1-8B-Instant)
+const callGroqMCQ = async ({ apiKey, prompt, count, focusDomain }) => {
+  const startTime = Date.now();
+  console.log(`⚡ [Groq AI] Requesting ${count} MCQs (Focus: ${focusDomain}) on "${prompt}"...`);
+
+  const systemInstruction = `You are a Principal Technical Interviewer creating questions for a placement exam.
+Generate exactly ${count} UNIQUE multiple choice questions for topic: "${prompt}".
+Focus specifically on: ${focusDomain}.
+RULES:
+1. NO DUPLICATE QUESTIONS. Every question must test a distinct sub-concept or code problem.
+2. PLAUSIBLE OPTIONS: All 4 options (A, B, C, D) must be realistic technical terms.
+3. RANDOMIZE ANSWER KEYS: Distribute correct answers across indices 0, 1, 2, 3 evenly.
+4. ONLY VALID JSON ARRAY. No backticks, no markdown, no conversational text.
+
+JSON Schema:
+[
+  {
+    "question": "Question statement?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctOption": 2
+  }
+]`;
+
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages: [
+          { role: 'system', content: systemInstruction },
+          { role: 'user', content: `Generate ${count} diverse MCQs on ${prompt}.` }
+        ],
+        temperature: 0.6,
+        max_tokens: 3000
+      })
+    });
+
+    const elapsed = Date.now() - startTime;
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`❌ [Groq Error HTTP ${response.status}] (${elapsed}ms):`, errText);
+      return [];
+    }
+
+    const data = await response.json();
+    const rawText = data.choices?.[0]?.message?.content || '';
+    console.log(`✅ [Groq AI] Received response (${elapsed}ms, ${rawText.length} chars)`);
+
+    let parsed = [];
+    const jsonStart = rawText.indexOf('[');
+    const jsonEnd = rawText.lastIndexOf(']');
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      parsed = JSON.parse(rawText.substring(jsonStart, jsonEnd + 1));
+    } else {
+      parsed = JSON.parse(rawText);
+    }
+
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.error(`⚠️ [Groq Exception] (${Date.now() - startTime}ms):`, err.message);
+    return [];
+  }
+};
+
+// Hugging Face API caller
 const callHuggingFaceMCQBatch = async ({ hfKey, modelName, modelUrl, prompt, count, focusDomain, batchId }) => {
   const startTime = Date.now();
-  console.log(`📡 [AI-MCQ Batch ${batchId}] Requesting ${count} questions (Focus: ${focusDomain}) on "${prompt}"...`);
+  console.log(`📡 [HuggingFace Batch ${batchId}] Requesting ${count} questions (Focus: ${focusDomain}) on "${prompt}"...`);
 
   const systemInstruction = `You are a Principal Technical Interviewer creating questions for a placement exam.
 Generate exactly ${count} UNIQUE multiple choice questions for topic: "${prompt}".
@@ -367,13 +500,13 @@ JSON Schema:
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error(`❌ [AI-MCQ Batch ${batchId}] Error HTTP ${response.status} (${elapsed}ms):`, errText);
+      console.error(`❌ [HuggingFace Batch ${batchId}] Error HTTP ${response.status} (${elapsed}ms):`, errText);
       return [];
     }
 
     const hfData = await response.json();
     const generatedText = hfData.choices?.[0]?.message?.content || '';
-    console.log(`✅ [AI-MCQ Batch ${batchId}] Received response (${elapsed}ms, ${generatedText.length} chars)`);
+    console.log(`✅ [HuggingFace Batch ${batchId}] Received response (${elapsed}ms, ${generatedText.length} chars)`);
 
     let parsed = [];
     const jsonStart = generatedText.indexOf('[');
@@ -386,13 +519,13 @@ JSON Schema:
 
     return Array.isArray(parsed) ? parsed : [];
   } catch (err) {
-    console.error(`⚠️ [AI-MCQ Batch ${batchId}] Exception (${Date.now() - startTime}ms):`, err.message);
+    console.error(`⚠️ [HuggingFace Batch ${batchId}] Exception (${Date.now() - startTime}ms):`, err.message);
     return [];
   }
 };
 
 // @route   POST /api/ai/generate-mcq
-// @desc    Fast Parallel & Accountable MCQ Generator with Real-Time Server Logging
+// @desc    Multi-Provider Fast & Accountable MCQ Generator (Gemini, Groq, Hugging Face with auto-fallback)
 router.post('/generate-mcq', async (req, res) => {
   const reqStart = Date.now();
   try {
@@ -403,88 +536,119 @@ router.post('/generate-mcq', async (req, res) => {
     }
 
     const count = Math.min(Math.max(Number(numQuestions) || 5, 1), 30);
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const groqKey = process.env.GROQ_API_KEY;
     const hfKey = apiKey || process.env.HUGGINGFACE_API_KEY;
 
     console.log(`\n======================================================`);
     console.log(`🚀 [AI-MCQ Request] Topic: "${prompt}" | Requested: ${count} Qs | Time: ${timeLimit}m`);
     console.log(`======================================================`);
 
-    if (!hfKey) {
-      console.log('ℹ️ [AI-MCQ] No HUGGINGFACE_API_KEY configured. Serving curated question bank...');
-      const fallbackQuestions = generateDiverseFallbackMCQs(prompt, count);
-      return res.json({
-        title: `${prompt} — MCQ Assessment`,
-        estimatedMinutes: timeLimit,
-        mcqs: fallbackQuestions,
-        source: 'diverse-generator'
-      });
+    let allGeneratedMCQs = [];
+    let providerUsed = 'none';
+
+    // 1. Try Gemini API first if configured (Super fast, free 15 RPM)
+    if (geminiKey && allGeneratedMCQs.length < count) {
+      try {
+        if (count > 10) {
+          const half = Math.ceil(count / 2);
+          const [b1, b2] = await Promise.all([
+            callGeminiMCQ({ apiKey: geminiKey, prompt, count: half, focusDomain: 'Core Concepts, Syntax & Complexity' }),
+            callGeminiMCQ({ apiKey: geminiKey, prompt, count: count - half, focusDomain: 'Practical Code, Edge Cases & Architecture' })
+          ]);
+          allGeneratedMCQs = [...b1, ...b2];
+        } else {
+          allGeneratedMCQs = await callGeminiMCQ({ apiKey: geminiKey, prompt, count, focusDomain: 'Comprehensive Concepts & Code Analysis' });
+        }
+        if (allGeneratedMCQs.length > 0) providerUsed = 'google-gemini';
+      } catch (gemErr) {
+        console.error('Gemini attempt failed, falling back...');
+      }
     }
 
-    const modelName = process.env.HUGGINGFACE_MODEL || 'meta-llama/Llama-3.1-8B-Instruct';
-    const modelUrl = 'https://router.huggingface.co/v1/chat/completions';
+    // 2. Try Groq API if configured (500 tokens/sec)
+    if (groqKey && allGeneratedMCQs.length < count) {
+      try {
+        if (count > 10) {
+          const half = Math.ceil(count / 2);
+          const [b1, b2] = await Promise.all([
+            callGroqMCQ({ apiKey: groqKey, prompt, count: half, focusDomain: 'Core Concepts, Syntax & Complexity' }),
+            callGroqMCQ({ apiKey: groqKey, prompt, count: count - half, focusDomain: 'Practical Code, Edge Cases & Architecture' })
+          ]);
+          allGeneratedMCQs = [...b1, ...b2];
+        } else {
+          allGeneratedMCQs = await callGroqMCQ({ apiKey: groqKey, prompt, count, focusDomain: 'Comprehensive Concepts & Code Analysis' });
+        }
+        if (allGeneratedMCQs.length > 0) providerUsed = 'groq-llama3.1';
+      } catch (groqErr) {
+        console.error('Groq attempt failed, falling back...');
+      }
+    }
 
-    let allGeneratedMCQs = [];
+    // 3. Try Hugging Face if configured
+    if (hfKey && allGeneratedMCQs.length < count) {
+      const modelName = process.env.HUGGINGFACE_MODEL || 'meta-llama/Llama-3.1-8B-Instruct';
+      const modelUrl = 'https://router.huggingface.co/v1/chat/completions';
 
-    // Optimize execution time: If count > 10, split into 2 parallel batches for 2x faster speed!
-    if (count > 10) {
-      const half = Math.ceil(count / 2);
-      console.log(`⚡ [AI-MCQ] Splitting ${count} questions into 2 concurrent parallel batches (~${half} Qs each)...`);
-
-      const [batch1, batch2] = await Promise.all([
-        callHuggingFaceMCQBatch({
+      if (count > 10) {
+        const half = Math.ceil(count / 2);
+        const [batch1, batch2] = await Promise.all([
+          callHuggingFaceMCQBatch({
+            hfKey,
+            modelName,
+            modelUrl,
+            prompt,
+            count: half,
+            focusDomain: 'Core Concepts, Definitions, Syntax, and Time/Space Complexity',
+            batchId: 1
+          }),
+          callHuggingFaceMCQBatch({
+            hfKey,
+            modelName,
+            modelUrl,
+            prompt,
+            count: count - half,
+            focusDomain: 'Practical Code Analysis, Edge Cases, Error Handling, and System Architecture',
+            batchId: 2
+          })
+        ]);
+        allGeneratedMCQs = [...batch1, ...batch2];
+      } else {
+        allGeneratedMCQs = await callHuggingFaceMCQBatch({
           hfKey,
           modelName,
           modelUrl,
           prompt,
-          count: half,
-          focusDomain: 'Core Concepts, Definitions, Syntax, and Time/Space Complexity',
+          count,
+          focusDomain: 'Core Concepts, Code Syntax, Complexity, and Practical Applications',
           batchId: 1
-        }),
-        callHuggingFaceMCQBatch({
-          hfKey,
-          modelName,
-          modelUrl,
-          prompt,
-          count: count - half,
-          focusDomain: 'Practical Code Analysis, Edge Cases, Error Handling, and System Architecture',
-          batchId: 2
-        })
-      ]);
-
-      allGeneratedMCQs = [...batch1, ...batch2];
-    } else {
-      allGeneratedMCQs = await callHuggingFaceMCQBatch({
-        hfKey,
-        modelName,
-        modelUrl,
-        prompt,
-        count,
-        focusDomain: 'Core Concepts, Code Syntax, Complexity, and Practical Applications',
-        batchId: 1
-      });
+        });
+      }
+      if (allGeneratedMCQs.length > 0) providerUsed = 'huggingface-llama3.1';
     }
 
     console.log(`🔀 [AI-MCQ] Deduplicating & applying Fisher-Yates option shuffler across ${allGeneratedMCQs.length} questions...`);
     let processedMCQs = deduplicateMCQs(allGeneratedMCQs);
 
-    // If API returned fewer questions than requested or had network dropouts, top up from diverse bank
+    // If all providers were exhausted or returned fewer items, top up from diverse curated question bank
     if (processedMCQs.length < count) {
       console.log(`ℹ️ [AI-MCQ] Topping up ${count - processedMCQs.length} questions to reach requested count of ${count}...`);
       const topUp = generateDiverseFallbackMCQs(prompt, count - processedMCQs.length);
       processedMCQs = [...processedMCQs, ...topUp];
+      if (providerUsed === 'none') providerUsed = 'smart-placement-bank';
     }
 
     const finalMCQs = processedMCQs.slice(0, count);
     const totalElapsed = Date.now() - reqStart;
 
-    console.log(`🎉 [AI-MCQ] Completed in ${totalElapsed}ms! Returning ${finalMCQs.length} verified questions with balanced keys.`);
+    console.log(`🎉 [AI-MCQ] Completed via [${providerUsed}] in ${totalElapsed}ms! Returning ${finalMCQs.length} questions.`);
     console.log(`======================================================\n`);
 
     res.json({
       title: `${prompt} — MCQ Assessment`,
       estimatedMinutes: timeLimit,
       mcqs: finalMCQs,
-      source: 'huggingface-parallel-accountable',
+      source: providerUsed,
       generationTimeMs: totalElapsed
     });
 
@@ -496,13 +660,13 @@ router.post('/generate-mcq', async (req, res) => {
       title: `${req.body.prompt || 'Technical'} — MCQ Assessment`,
       estimatedMinutes: req.body.timeLimit || 10,
       mcqs: fallbackQuestions,
-      source: 'fallback'
+      source: 'smart-fallback'
     });
   }
 });
 
 // @route   POST /api/ai/generate-reading
-// @desc    Generate structured study reading material with AI (meta-llama/Llama-3.1-8B-Instruct)
+// @desc    Generate structured study reading material with AI (Gemini, Groq, or Hugging Face)
 router.post('/generate-reading', async (req, res) => {
   const reqStart = Date.now();
   try {
@@ -513,20 +677,12 @@ router.post('/generate-reading', async (req, res) => {
     }
 
     console.log(`📖 [AI-Reading Request] Topic: "${prompt}" | Reading Time: ${estimatedMinutes}m`);
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const groqKey = process.env.GROQ_API_KEY;
     const hfKey = apiKey || process.env.HUGGINGFACE_API_KEY;
 
-    if (!hfKey) {
-      const fallbackText = generateFallbackReading(prompt);
-      return res.json({
-        title: `${prompt} Study Material`,
-        estimatedMinutes,
-        readingContent: fallbackText,
-        source: 'smart-fallback'
-      });
-    }
-
-    const modelName = process.env.HUGGINGFACE_MODEL || 'meta-llama/Llama-3.1-8B-Instruct';
-    const modelUrl = 'https://router.huggingface.co/v1/chat/completions';
+    let generatedContent = '';
+    let providerUsed = 'fallback';
 
     const systemInstruction = `You are a senior technical educator writing clean placement study notes.
 Write a clear, beautifully structured Markdown reading module on topic: "${prompt}".
@@ -542,44 +698,102 @@ Structure:
 ## Real-World Code & Practical Examples
 ## Industry Applications & Common Interview Questions`;
 
-    const response = await fetch(modelUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${hfKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: modelName,
-        messages: [
-          { role: 'system', content: systemInstruction },
-          { role: 'user', content: `Explain ${prompt} in detail with practical examples, code blocks, and interview notes.` }
-        ],
-        temperature: 0.35,
-        max_tokens: 3000
-      })
-    });
-
-    if (!response.ok) {
-      const fallbackText = generateFallbackReading(prompt);
-      return res.json({
-        title: `${prompt} Study Material`,
-        estimatedMinutes,
-        readingContent: fallbackText,
-        source: 'smart-fallback'
-      });
+    // 1. Try Gemini
+    if (geminiKey && !generatedContent) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              { role: 'user', parts: [{ text: `${systemInstruction}\n\nTask: Explain ${prompt} in detail with practical examples and code.` }] }
+            ],
+            generationConfig: { temperature: 0.4, maxOutputTokens: 3000 }
+          })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          generatedContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (generatedContent) providerUsed = 'google-gemini';
+        }
+      } catch (err) {
+        console.error('Gemini reading generation failed, trying next...');
+      }
     }
 
-    const hfData = await response.json();
-    let generatedContent = hfData.choices?.[0]?.message?.content || generateFallbackReading(prompt);
-    const totalElapsed = Date.now() - reqStart;
+    // 2. Try Groq
+    if (groqKey && !generatedContent) {
+      try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${groqKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'llama-3.1-8b-instant',
+            messages: [
+              { role: 'system', content: systemInstruction },
+              { role: 'user', content: `Explain ${prompt} in detail with practical examples, code blocks, and interview notes.` }
+            ],
+            temperature: 0.35,
+            max_tokens: 3000
+          })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          generatedContent = data.choices?.[0]?.message?.content || '';
+          if (generatedContent) providerUsed = 'groq-llama3.1';
+        }
+      } catch (err) {
+        console.error('Groq reading generation failed, trying next...');
+      }
+    }
 
-    console.log(`🎉 [AI-Reading] Generated study notes in ${totalElapsed}ms.`);
+    // 3. Try Hugging Face
+    if (hfKey && !generatedContent) {
+      try {
+        const modelName = process.env.HUGGINGFACE_MODEL || 'meta-llama/Llama-3.1-8B-Instruct';
+        const modelUrl = 'https://router.huggingface.co/v1/chat/completions';
+        const response = await fetch(modelUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${hfKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: modelName,
+            messages: [
+              { role: 'system', content: systemInstruction },
+              { role: 'user', content: `Explain ${prompt} in detail with practical examples, code blocks, and interview notes.` }
+            ],
+            temperature: 0.35,
+            max_tokens: 3000
+          })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          generatedContent = data.choices?.[0]?.message?.content || '';
+          if (generatedContent) providerUsed = 'huggingface-llama3.1';
+        }
+      } catch (err) {
+        console.error('Hugging Face reading generation failed...');
+      }
+    }
+
+    if (!generatedContent) {
+      generatedContent = generateFallbackReading(prompt);
+    }
+
+    const totalElapsed = Date.now() - reqStart;
+    console.log(`🎉 [AI-Reading] Generated study notes via [${providerUsed}] in ${totalElapsed}ms.`);
 
     res.json({
       title: `${prompt} Study Notes`,
       estimatedMinutes,
       readingContent: generatedContent,
-      source: 'huggingface-llama3.1',
+      source: providerUsed,
       generationTimeMs: totalElapsed
     });
 
