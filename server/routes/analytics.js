@@ -29,62 +29,84 @@ router.get('/:enrollmentId/overview', async (req, res) => {
       enrollmentId: enrollment._id,
       userId: req.user.userId,
       completed: true
-    });
+    }).populate('scheduleTaskId');
 
     const completedCount = progressDocs.length;
     const completionRate = totalTasks === 0 ? 0 : Math.round((completedCount / totalTasks) * 100);
 
+    // Total Study Hours calculation (sum actualMinutes or fallback to estimatedMinutes)
     let totalActualMinutes = 0;
     progressDocs.forEach(p => {
-      if (p.actualMinutes) totalActualMinutes += p.actualMinutes;
+      if (p.actualMinutes && p.actualMinutes > 0) {
+        totalActualMinutes += p.actualMinutes;
+      } else if (p.scheduleTaskId && p.scheduleTaskId.estimatedMinutes) {
+        totalActualMinutes += p.scheduleTaskId.estimatedMinutes;
+      } else {
+        totalActualMinutes += 20; // Default fallback
+      }
     });
 
     const tasks = await ScheduleTask.find({ scheduleId }).lean();
 
-    // Compute Streaks
+    // Compute Streaks accurately
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const startDate = new Date(enrollment.startDate);
     startDate.setHours(0, 0, 0, 0);
 
-    const completedProgress = await TaskProgress.find({
-      enrollmentId: enrollment._id,
-      userId: req.user.userId,
-      completed: true
-    }).populate('scheduleTaskId');
-
     const completedDayNumbers = new Set();
-    completedProgress.forEach(p => {
+    progressDocs.forEach(p => {
       if (p.scheduleTaskId) {
         completedDayNumbers.add(p.scheduleTaskId.dayNumber);
       }
     });
 
-    const tasksByDayNumber = {};
-    tasks.forEach(t => {
-      if (!tasksByDayNumber[t.dayNumber]) tasksByDayNumber[t.dayNumber] = 0;
-      tasksByDayNumber[t.dayNumber]++;
-    });
+    const todayDayNum = getDayNumber(today, startDate);
 
-    let currentStreak = 0;
+    // A day is active if any task assigned to that dayNumber is completed OR completed on that date
+    const isDayActive = (dNum) => {
+      if (completedDayNumbers.has(dNum)) return true;
+      
+      const targetDate = new Date(startDate);
+      targetDate.setDate(targetDate.getDate() + (dNum - 1));
+      const targetDateStr = targetDate.toISOString().split('T')[0];
+
+      return progressDocs.some(p => {
+        if (!p.completedAt) return false;
+        const compDateStr = new Date(p.completedAt).toISOString().split('T')[0];
+        return compDateStr === targetDateStr;
+      });
+    };
+
+    // Calculate Best Streak across all elapsed days
     let bestStreak = 0;
-    let currentTempStreak = 0;
-
-    let scanDate = new Date(startDate);
-    while (scanDate <= today) {
-      let dNum = getDayNumber(scanDate, startDate);
-      if (tasksByDayNumber[dNum] && tasksByDayNumber[dNum] > 0) {
-        if (completedDayNumbers.has(dNum)) {
-          currentTempStreak++;
-          if (currentTempStreak > bestStreak) bestStreak = currentTempStreak;
-        } else {
-          currentTempStreak = 0;
-        }
+    let tempStreak = 0;
+    for (let d = 1; d <= Math.max(1, todayDayNum); d++) {
+      if (isDayActive(d)) {
+        tempStreak++;
+        if (tempStreak > bestStreak) bestStreak = tempStreak;
+      } else {
+        tempStreak = 0;
       }
-      scanDate.setDate(scanDate.getDate() + 1);
     }
 
-    currentStreak = currentTempStreak;
+    // Calculate Current Active Streak
+    let currentStreak = 0;
+    let scanDay = todayDayNum;
+
+    // If today's tasks are not completed yet, hold streak from yesterday if active
+    if (!isDayActive(todayDayNum)) {
+      scanDay = todayDayNum - 1;
+    }
+
+    while (scanDay >= 1 && isDayActive(scanDay)) {
+      currentStreak++;
+      scanDay--;
+    }
+
+    if (currentStreak > bestStreak) {
+      bestStreak = currentStreak;
+    }
 
     res.json({
       completionRate,
@@ -255,8 +277,8 @@ router.get('/:enrollmentId/studytime', async (req, res) => {
 
       dayTasks.forEach(t => {
         estimatedMinutes += (t.estimatedMinutes || 0);
-        if (progressMap[t._id.toString()]) {
-          actualMinutes += (progressMap[t._id.toString()].actualMinutes || 0);
+        if (progressMap[t._id.toString()] && progressMap[t._id.toString()].completed) {
+          actualMinutes += (progressMap[t._id.toString()].actualMinutes || t.estimatedMinutes || 20);
         }
       });
 

@@ -81,7 +81,7 @@ router.get('/:enrollmentId', async (req, res) => {
 // @desc    Toggle task completion
 router.post('/toggle', async (req, res) => {
   try {
-    const { scheduleTaskId, enrollmentId } = req.body;
+    const { scheduleTaskId, enrollmentId, actualMinutes } = req.body;
 
     const enrollment = await Enrollment.findOne({
       _id: enrollmentId,
@@ -90,6 +90,8 @@ router.post('/toggle', async (req, res) => {
     if (!enrollment) {
       return res.status(404).json({ message: 'Enrollment not found' });
     }
+
+    const task = await ScheduleTask.findById(scheduleTaskId);
 
     let progress = await TaskProgress.findOne({
       userId: req.user.userId,
@@ -100,6 +102,9 @@ router.post('/toggle', async (req, res) => {
     if (progress) {
       progress.completed = !progress.completed;
       progress.completedAt = progress.completed ? new Date() : null;
+      if (progress.completed) {
+        progress.actualMinutes = actualMinutes || (task ? task.estimatedMinutes : 30);
+      }
       await progress.save();
     } else {
       progress = new TaskProgress({
@@ -107,7 +112,8 @@ router.post('/toggle', async (req, res) => {
         enrollmentId,
         scheduleTaskId,
         completed: true,
-        completedAt: new Date()
+        completedAt: new Date(),
+        actualMinutes: actualMinutes || (task ? task.estimatedMinutes : 30)
       });
       await progress.save();
     }
@@ -164,10 +170,12 @@ router.post('/submit-mcq', async (req, res) => {
       scheduleTaskId
     });
 
+    const timeSpent = actualMinutes || task.estimatedMinutes || 20;
+
     if (progress) {
       progress.completed = true;
       progress.completedAt = new Date();
-      if (actualMinutes) progress.actualMinutes = actualMinutes;
+      progress.actualMinutes = timeSpent;
       progress.mcqScore = {
         score: correctCount,
         total: totalQuestions,
@@ -182,7 +190,7 @@ router.post('/submit-mcq', async (req, res) => {
         scheduleTaskId,
         completed: true,
         completedAt: new Date(),
-        actualMinutes: actualMinutes || task.estimatedMinutes,
+        actualMinutes: timeSpent,
         mcqScore: {
           score: correctCount,
           total: totalQuestions,
