@@ -1,5 +1,5 @@
 export const CATEGORIES = [
-  'DSA', 'SQL', 'DBMS', 'OOP', 'CN', 'OS', 'Java', 'Frontend', 'Technical', 'Aptitude', 'Communication', 'Interview', 'Mock Test', 'MCQ Assessment'
+  'DSA', 'SQL', 'DBMS', 'OOP', 'CN', 'OS', 'Java', 'Frontend', 'Technical', 'Aptitude', 'Communication', 'Interview', 'Mock Test'
 ];
 
 export const CATEGORY_COLORS = {
@@ -15,8 +15,7 @@ export const CATEGORY_COLORS = {
   'Aptitude': '#84cc16',
   'Communication': '#ec4899',
   'Interview': '#8b5cf6',
-  'Mock Test': '#6366f1',
-  'MCQ Assessment': '#e11d48'
+  'Mock Test': '#6366f1'
 };
 
 export const PRIORITIES = ['Low', 'Medium', 'High'];

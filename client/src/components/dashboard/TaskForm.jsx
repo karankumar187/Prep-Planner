@@ -32,7 +32,7 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
       setTaskType(type);
       setFormData({
         title: initialData.title || '',
-        category: initialData.category || (type === 'reading' ? 'Reading Material' : CATEGORIES[0]),
+        category: (initialData.category && CATEGORIES.includes(initialData.category)) ? initialData.category : CATEGORIES[0],
         link: initialData.link || '',
         readingContent: initialData.readingContent || '',
         dayNumber: initialData.dayNumber || dayNumber,
@@ -45,7 +45,7 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
       setTaskType(type);
       setFormData({
         title: '',
-        category: type === 'reading' ? 'Reading Material' : (type === 'assessment' ? 'MCQ Assessment' : CATEGORIES[0]),
+        category: CATEGORIES[0],
         link: '',
         readingContent: '',
         dayNumber: dayNumber,
@@ -62,11 +62,6 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
 
   const handleTypeChange = (type) => {
     setTaskType(type);
-    if (type === 'reading' && formData.category !== 'Reading Material') {
-      setFormData({ ...formData, category: 'Reading Material' });
-    } else if (type === 'assessment' && formData.category !== 'MCQ Assessment') {
-      setFormData({ ...formData, category: 'MCQ Assessment' });
-    }
   };
 
   const handleAddQuestion = () => {
@@ -114,7 +109,7 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
       setFormData(prev => ({
         ...prev,
         title: res.data.title || `${aiTopic} — MCQ Assessment`,
-        category: 'MCQ Assessment',
+        category: prev.category && CATEGORIES.includes(prev.category) ? prev.category : 'Technical',
         mcqs: res.data.mcqs || []
       }));
 
@@ -140,7 +135,7 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
       setFormData(prev => ({
         ...prev,
         title: res.data.title || `${aiTopic} Study Material`,
-        category: 'Reading Material',
+        category: prev.category && CATEGORIES.includes(prev.category) ? prev.category : 'Technical',
         readingContent: res.data.readingContent || ''
       }));
 
