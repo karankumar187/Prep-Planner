@@ -14,11 +14,39 @@ const CategoryDonutChart = ({ data }) => {
   const completedTasks = chartData.reduce((acc, curr) => acc + curr.completed, 0);
   const overallPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
+  const halfIndex = Math.ceil(chartData.length / 2);
+  const leftColumn = chartData.slice(0, halfIndex);
+  const rightColumn = chartData.slice(halfIndex);
+
+  const CategoryItem = ({ item }) => (
+    <div className="text-sm">
+      <div className="flex justify-between items-center mb-1">
+        <div className="flex items-center gap-2 overflow-hidden">
+          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CATEGORY_COLORS[item.category] || '#64748b' }} />
+          <span className="text-slate-300 truncate" title={item.category}>{item.category}</span>
+        </div>
+        <span className="text-slate-400 text-xs ml-2 flex-shrink-0">{item.percentage}%</span>
+      </div>
+      <div className="w-full bg-slate-700 rounded-full h-1.5">
+        <div className="h-1.5 rounded-full" style={{ width: `${item.percentage}%`, backgroundColor: CATEGORY_COLORS[item.category] || '#64748b' }} />
+      </div>
+    </div>
+  );
+
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 h-80 flex flex-col">
-      <h3 className="text-lg font-bold text-white mb-2">Category Breakdown</h3>
-      <div className="flex-1 flex items-center">
-        <div className="w-1/2 h-full relative">
+    <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col h-full min-h-[320px]">
+      <h3 className="text-lg font-bold text-white mb-6">Category Breakdown</h3>
+      <div className="flex-1 flex flex-row items-center justify-between gap-4 md:gap-6">
+        
+        {/* Left Column */}
+        <div className="flex-1 space-y-4 min-w-0">
+          {leftColumn.map((item, i) => (
+            <CategoryItem key={`left-${i}`} item={item} />
+          ))}
+        </div>
+
+        {/* Center Donut */}
+        <div className="w-[160px] h-[160px] md:w-[180px] md:h-[180px] relative flex-shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -37,6 +65,7 @@ const CategoryDonutChart = ({ data }) => {
               </Pie>
               <Tooltip 
                 contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f1f5f9' }}
+                itemStyle={{ color: '#f1f5f9' }}
                 formatter={(value, name, props) => [`${value} tasks`, props.payload.category]}
               />
             </PieChart>
@@ -46,22 +75,14 @@ const CategoryDonutChart = ({ data }) => {
             <span className="text-[10px] text-slate-400 uppercase tracking-wider">Done</span>
           </div>
         </div>
-        <div className="w-1/2 pl-4 max-h-[220px] overflow-y-auto pr-1 space-y-3 custom-scrollbar">
-          {chartData.map((item, i) => (
-            <div key={i} className="text-sm">
-              <div className="flex justify-between items-center mb-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[item.category] }} />
-                  <span className="text-slate-300 truncate w-16" title={item.category}>{item.category}</span>
-                </div>
-                <span className="text-slate-400 text-xs">{item.percentage}%</span>
-              </div>
-              <div className="w-full bg-slate-700 rounded-full h-1.5">
-                <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: `${item.percentage}%`, backgroundColor: CATEGORY_COLORS[item.category] }} />
-              </div>
-            </div>
+
+        {/* Right Column */}
+        <div className="flex-1 space-y-4 min-w-0">
+          {rightColumn.map((item, i) => (
+            <CategoryItem key={`right-${i}`} item={item} />
           ))}
         </div>
+
       </div>
     </div>
   );
