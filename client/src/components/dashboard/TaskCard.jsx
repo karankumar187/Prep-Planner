@@ -19,6 +19,18 @@ const TaskCard = ({ task, enrollmentId, onToggleComplete, onEdit, onDelete, onMC
   const resourceLink = task.scheduleTask.link;
 
   const handleToggle = () => {
+    // If it's a Reading Material task, force opening the reader modal
+    if (hasReading && !isCompleted) {
+      setIsReadingOpen(true);
+      return;
+    }
+    // If it's an MCQ Quiz task, force opening the quiz runner
+    if (hasMCQs && !isCompleted) {
+      setIsMCQOpen(true);
+      return;
+    }
+
+    // Standard task toggle
     if (!isCompleted) {
       setShowTimeInput(true);
     } else {
@@ -44,6 +56,7 @@ const TaskCard = ({ task, enrollmentId, onToggleComplete, onEdit, onDelete, onMC
             className={`w-4 h-4 rounded border flex items-center justify-center cursor-pointer transition-colors flex-shrink-0 ${
               isCompleted ? 'bg-green-500 border-green-500' : 'border-slate-500 hover:border-indigo-400'
             }`}
+            title={hasReading ? "Open & read study material to complete" : hasMCQs ? "Take quiz to complete" : "Toggle task completion"}
           >
             {isCompleted && <Check size={12} className="text-white" />}
           </div>
