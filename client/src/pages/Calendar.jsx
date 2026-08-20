@@ -66,9 +66,9 @@ const Calendar = () => {
     }
   };
 
-  const handleToggle = async (taskId) => {
+  const handleToggle = async (taskId, actualMins) => {
     try {
-      await toggleComplete(taskId, selectedEnrollment._id);
+      await toggleComplete(taskId, selectedEnrollment._id, actualMins);
       fetchDayData();
       fetchMonthData();
     } catch (err) {

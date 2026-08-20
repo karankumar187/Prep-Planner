@@ -50,7 +50,7 @@ const Dashboard = () => {
 
   const handleToggle = async (taskId, actualMins) => {
     try {
-      await toggleComplete(taskId, selectedEnrollment._id);
+      await toggleComplete(taskId, selectedEnrollment._id, actualMins);
       fetchData();
     } catch (err) {
       console.error(err);
