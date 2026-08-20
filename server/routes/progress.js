@@ -20,7 +20,7 @@ router.get('/:enrollmentId', async (req, res) => {
     const enrollment = await Enrollment.findOne({
       _id: req.params.enrollmentId,
       userId: req.user.userId
-    });
+    }).select('scheduleId startDate');
     if (!enrollment) {
       return res.status(404).json({ message: 'Enrollment not found' });
     }
@@ -78,20 +78,22 @@ router.get('/:enrollmentId', async (req, res) => {
 });
 
 // @route   POST /api/progress/toggle
-// @desc    Toggle task completion
+// @desc    Toggle task completion (Optimized with lean projection)
 router.post('/toggle', async (req, res) => {
   try {
     const { scheduleTaskId, enrollmentId, actualMinutes } = req.body;
 
-    const enrollment = await Enrollment.findOne({
-      _id: enrollmentId,
-      userId: req.user.userId
-    });
+    const [enrollment, task] = await Promise.all([
+      Enrollment.findOne({
+        _id: enrollmentId,
+        userId: req.user.userId
+      }).select('_id'),
+      ScheduleTask.findById(scheduleTaskId).select('estimatedMinutes').lean()
+    ]);
+
     if (!enrollment) {
       return res.status(404).json({ message: 'Enrollment not found' });
     }
-
-    const task = await ScheduleTask.findById(scheduleTaskId);
 
     let progress = await TaskProgress.findOne({
       userId: req.user.userId,
@@ -99,11 +101,13 @@ router.post('/toggle', async (req, res) => {
       scheduleTaskId
     });
 
+    const timeSpent = actualMinutes || (task ? task.estimatedMinutes : 30);
+
     if (progress) {
       progress.completed = !progress.completed;
       progress.completedAt = progress.completed ? new Date() : null;
       if (progress.completed) {
-        progress.actualMinutes = actualMinutes || (task ? task.estimatedMinutes : 30);
+        progress.actualMinutes = timeSpent;
       }
       await progress.save();
     } else {
@@ -113,7 +117,7 @@ router.post('/toggle', async (req, res) => {
         scheduleTaskId,
         completed: true,
         completedAt: new Date(),
-        actualMinutes: actualMinutes || (task ? task.estimatedMinutes : 30)
+        actualMinutes: timeSpent
       });
       await progress.save();
     }
@@ -131,15 +135,17 @@ router.post('/submit-mcq', async (req, res) => {
   try {
     const { scheduleTaskId, enrollmentId, userAnswers, actualMinutes } = req.body;
 
-    const enrollment = await Enrollment.findOne({
-      _id: enrollmentId,
-      userId: req.user.userId
-    });
+    const [enrollment, task] = await Promise.all([
+      Enrollment.findOne({
+        _id: enrollmentId,
+        userId: req.user.userId
+      }).select('_id'),
+      ScheduleTask.findById(scheduleTaskId).select('mcqs estimatedMinutes').lean()
+    ]);
+
     if (!enrollment) {
       return res.status(404).json({ message: 'Enrollment not found' });
     }
-
-    const task = await ScheduleTask.findById(scheduleTaskId);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
@@ -217,7 +223,7 @@ router.put('/', async (req, res) => {
     const enrollment = await Enrollment.findOne({
       _id: enrollmentId,
       userId: req.user.userId
-    });
+    }).select('_id');
     if (!enrollment) {
       return res.status(404).json({ message: 'Enrollment not found' });
     }

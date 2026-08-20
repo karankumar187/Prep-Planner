@@ -19,6 +19,9 @@ const taskProgressSchema = new mongoose.Schema({
   }]
 }, { timestamps: true });
 
+// Compound indexes for ultra-fast query performance
 taskProgressSchema.index({ userId: 1, scheduleTaskId: 1, enrollmentId: 1 }, { unique: true });
+taskProgressSchema.index({ enrollmentId: 1, userId: 1, completed: 1 });
+taskProgressSchema.index({ userId: 1, enrollmentId: 1 });
 
 module.exports = mongoose.model('TaskProgress', taskProgressSchema);

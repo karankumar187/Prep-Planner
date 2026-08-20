@@ -14,71 +14,74 @@ const getDayNumber = (date, startDate) => {
 };
 
 // @route   GET /api/analytics/:enrollmentId/overview
-// @desc    Get analytics overview for an enrollment
+// @desc    Get analytics overview for an enrollment (Optimized with projection & O(1) streak set)
 router.get('/:enrollmentId/overview', async (req, res) => {
   try {
     const enrollment = await Enrollment.findOne({
       _id: req.params.enrollmentId,
       userId: req.user.userId
-    }).populate('scheduleId');
+    }).select('startDate scheduleId');
     if (!enrollment) return res.status(404).json({ message: 'Enrollment not found' });
 
-    const scheduleId = enrollment.scheduleId._id;
-    const totalTasks = await ScheduleTask.countDocuments({ scheduleId });
-    const progressDocs = await TaskProgress.find({
-      enrollmentId: enrollment._id,
-      userId: req.user.userId,
-      completed: true
-    }).populate('scheduleTaskId');
+    const scheduleId = enrollment.scheduleId;
+    
+    // Execute count and progress in parallel
+    const [totalTasks, progressDocs] = await Promise.all([
+      ScheduleTask.countDocuments({ scheduleId }),
+      TaskProgress.find({
+        enrollmentId: enrollment._id,
+        userId: req.user.userId,
+        completed: true
+      })
+      .select('scheduleTaskId actualMinutes completedAt')
+      .populate({
+        path: 'scheduleTaskId',
+        select: 'dayNumber estimatedMinutes'
+      })
+      .lean()
+    ]);
 
     const completedCount = progressDocs.length;
     const completionRate = totalTasks === 0 ? 0 : Math.round((completedCount / totalTasks) * 100);
 
-    // Total Study Hours calculation (sum actualMinutes or fallback to estimatedMinutes)
+    // Sum Study Hours
     let totalActualMinutes = 0;
+    const completedDayNumbers = new Set();
+    const completedDateStringsSet = new Set();
+
     progressDocs.forEach(p => {
       if (p.actualMinutes && p.actualMinutes > 0) {
         totalActualMinutes += p.actualMinutes;
       } else if (p.scheduleTaskId && p.scheduleTaskId.estimatedMinutes) {
         totalActualMinutes += p.scheduleTaskId.estimatedMinutes;
       } else {
-        totalActualMinutes += 20; // Default fallback
+        totalActualMinutes += 20;
+      }
+
+      if (p.scheduleTaskId?.dayNumber) {
+        completedDayNumbers.add(p.scheduleTaskId.dayNumber);
+      }
+      if (p.completedAt) {
+        completedDateStringsSet.add(new Date(p.completedAt).toISOString().split('T')[0]);
       }
     });
 
-    const tasks = await ScheduleTask.find({ scheduleId }).lean();
-
-    // Compute Streaks accurately
+    // Compute Streaks with O(1) Set lookups
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const startDate = new Date(enrollment.startDate);
     startDate.setHours(0, 0, 0, 0);
 
-    const completedDayNumbers = new Set();
-    progressDocs.forEach(p => {
-      if (p.scheduleTaskId) {
-        completedDayNumbers.add(p.scheduleTaskId.dayNumber);
-      }
-    });
-
     const todayDayNum = getDayNumber(today, startDate);
 
-    // A day is active if any task assigned to that dayNumber is completed OR completed on that date
     const isDayActive = (dNum) => {
       if (completedDayNumbers.has(dNum)) return true;
-      
       const targetDate = new Date(startDate);
       targetDate.setDate(targetDate.getDate() + (dNum - 1));
       const targetDateStr = targetDate.toISOString().split('T')[0];
-
-      return progressDocs.some(p => {
-        if (!p.completedAt) return false;
-        const compDateStr = new Date(p.completedAt).toISOString().split('T')[0];
-        return compDateStr === targetDateStr;
-      });
+      return completedDateStringsSet.has(targetDateStr);
     };
 
-    // Calculate Best Streak across all elapsed days
     let bestStreak = 0;
     let tempStreak = 0;
     for (let d = 1; d <= Math.max(1, todayDayNum); d++) {
@@ -90,11 +93,9 @@ router.get('/:enrollmentId/overview', async (req, res) => {
       }
     }
 
-    // Calculate Current Active Streak
     let currentStreak = 0;
     let scanDay = todayDayNum;
 
-    // If today's tasks are not completed yet, hold streak from yesterday if active
     if (!isDayActive(todayDayNum)) {
       scanDay = todayDayNum - 1;
     }
@@ -123,24 +124,25 @@ router.get('/:enrollmentId/overview', async (req, res) => {
 });
 
 // @route   GET /api/analytics/:enrollmentId/categories
-// @desc    Get category analytics for an enrollment
+// @desc    Get category analytics for an enrollment (Optimized with projection)
 router.get('/:enrollmentId/categories', async (req, res) => {
   try {
     const enrollment = await Enrollment.findOne({
       _id: req.params.enrollmentId,
       userId: req.user.userId
-    });
+    }).select('scheduleId');
     if (!enrollment) return res.status(404).json({ message: 'Enrollment not found' });
 
-    const tasks = await ScheduleTask.find({ scheduleId: enrollment.scheduleId }).lean();
-    const progress = await TaskProgress.find({
-      enrollmentId: enrollment._id,
-      userId: req.user.userId,
-      completed: true
-    }).lean();
+    const [tasks, progress] = await Promise.all([
+      ScheduleTask.find({ scheduleId: enrollment.scheduleId }).select('category').lean(),
+      TaskProgress.find({
+        enrollmentId: enrollment._id,
+        userId: req.user.userId,
+        completed: true
+      }).select('scheduleTaskId').lean()
+    ]);
 
     const completedTaskIds = new Set(progress.map(p => p.scheduleTaskId.toString()));
-
     const categoryStats = {};
 
     tasks.forEach(task => {
@@ -157,7 +159,7 @@ router.get('/:enrollmentId/categories', async (req, res) => {
       category,
       total: categoryStats[category].total,
       completed: categoryStats[category].completed,
-      percentage: Math.round((categoryStats[category].completed / categoryStats[category].total) * 100)
+      percentage: categoryStats[category].total > 0 ? Math.round((categoryStats[category].completed / categoryStats[category].total) * 100) : 0
     }));
 
     res.json(result);
@@ -168,13 +170,13 @@ router.get('/:enrollmentId/categories', async (req, res) => {
 });
 
 // @route   GET /api/analytics/:enrollmentId/weekly
-// @desc    Get weekly analytics for an enrollment
+// @desc    Get weekly analytics for an enrollment (Optimized with projection)
 router.get('/:enrollmentId/weekly', async (req, res) => {
   try {
     const enrollment = await Enrollment.findOne({
       _id: req.params.enrollmentId,
       userId: req.user.userId
-    });
+    }).select('scheduleId startDate');
     if (!enrollment) return res.status(404).json({ message: 'Enrollment not found' });
 
     const targetDate = req.query.date ? new Date(req.query.date) : new Date();
@@ -189,16 +191,16 @@ router.get('/:enrollmentId/weekly', async (req, res) => {
     const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const result = [];
 
-    const allTasks = await ScheduleTask.find({ scheduleId: enrollment.scheduleId }).lean();
-    const progress = await TaskProgress.find({
-      enrollmentId: enrollment._id,
-      userId: req.user.userId
-    }).lean();
+    const [allTasks, progress] = await Promise.all([
+      ScheduleTask.find({ scheduleId: enrollment.scheduleId }).select('dayNumber').lean(),
+      TaskProgress.find({
+        enrollmentId: enrollment._id,
+        userId: req.user.userId,
+        completed: true
+      }).select('scheduleTaskId').lean()
+    ]);
 
-    const progressMap = {};
-    progress.forEach(p => {
-      progressMap[p.scheduleTaskId.toString()] = p;
-    });
+    const completedTaskIds = new Set(progress.map(p => p.scheduleTaskId.toString()));
 
     for (let i = 0; i < 7; i++) {
       let currentDate = new Date(monday);
@@ -211,7 +213,7 @@ router.get('/:enrollmentId/weekly', async (req, res) => {
       let completed = 0;
 
       dayTasks.forEach(t => {
-        if (progressMap[t._id.toString()] && progressMap[t._id.toString()].completed) {
+        if (completedTaskIds.has(t._id.toString())) {
           completed++;
         }
       });
@@ -233,13 +235,13 @@ router.get('/:enrollmentId/weekly', async (req, res) => {
 });
 
 // @route   GET /api/analytics/:enrollmentId/studytime
-// @desc    Get weekly study time analytics
+// @desc    Get weekly study time analytics (Optimized with projection)
 router.get('/:enrollmentId/studytime', async (req, res) => {
   try {
     const enrollment = await Enrollment.findOne({
       _id: req.params.enrollmentId,
       userId: req.user.userId
-    });
+    }).select('scheduleId startDate');
     if (!enrollment) return res.status(404).json({ message: 'Enrollment not found' });
 
     const targetDate = req.query.date ? new Date(req.query.date) : new Date();
@@ -254,11 +256,14 @@ router.get('/:enrollmentId/studytime', async (req, res) => {
     const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const result = [];
 
-    const allTasks = await ScheduleTask.find({ scheduleId: enrollment.scheduleId }).lean();
-    const progress = await TaskProgress.find({
-      enrollmentId: enrollment._id,
-      userId: req.user.userId
-    }).lean();
+    const [allTasks, progress] = await Promise.all([
+      ScheduleTask.find({ scheduleId: enrollment.scheduleId }).select('dayNumber estimatedMinutes').lean(),
+      TaskProgress.find({
+        enrollmentId: enrollment._id,
+        userId: req.user.userId,
+        completed: true
+      }).select('scheduleTaskId actualMinutes').lean()
+    ]);
 
     const progressMap = {};
     progress.forEach(p => {
@@ -277,7 +282,7 @@ router.get('/:enrollmentId/studytime', async (req, res) => {
 
       dayTasks.forEach(t => {
         estimatedMinutes += (t.estimatedMinutes || 0);
-        if (progressMap[t._id.toString()] && progressMap[t._id.toString()].completed) {
+        if (progressMap[t._id.toString()]) {
           actualMinutes += (progressMap[t._id.toString()].actualMinutes || t.estimatedMinutes || 20);
         }
       });

@@ -29,9 +29,6 @@ const Dashboard = () => {
 
   const fetchData = async () => {
     try {
-      const statsRes = await getOverview(selectedEnrollment._id);
-      setStats(statsRes.data);
-
       const todayStr = format(new Date(), 'yyyy-MM-dd');
       const todayDate = new Date(todayStr);
       const start = new Date(selectedEnrollment.startDate);
@@ -41,7 +38,13 @@ const Dashboard = () => {
       const dayNum = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
       setCurrentDayNum(dayNum > 0 ? dayNum : 1);
 
-      const progressRes = await getProgress(selectedEnrollment._id, todayStr);
+      // Fetch overview stats and today's tasks in parallel
+      const [statsRes, progressRes] = await Promise.all([
+        getOverview(selectedEnrollment._id),
+        getProgress(selectedEnrollment._id, todayStr)
+      ]);
+
+      setStats(statsRes.data);
       setTodayTasks(progressRes.data);
     } catch (err) {
       console.error(err);
@@ -49,11 +52,25 @@ const Dashboard = () => {
   };
 
   const handleToggle = async (taskId, actualMins) => {
+    // Optimistic UI update (instant 0ms feedback)
+    setTodayTasks(prev => prev.map(t => {
+      if (t.scheduleTask._id === taskId) {
+        const nextCompleted = !t.completed;
+        return {
+          ...t,
+          completed: nextCompleted,
+          actualMinutes: nextCompleted ? (actualMins || t.scheduleTask.estimatedMinutes) : null
+        };
+      }
+      return t;
+    }));
+
     try {
       await toggleComplete(taskId, selectedEnrollment._id, actualMins);
       fetchData();
     } catch (err) {
       console.error(err);
+      fetchData();
     }
   };
 
