@@ -31,7 +31,8 @@ app.use(cors({
 // Enable pre-flight for all routes
 app.options('*', cors());
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Root & Health Check Endpoints for Render
 app.get('/', (req, res) => {
