@@ -253,14 +253,18 @@ router.post('/generate-reading', async (req, res) => {
     const modelName = process.env.HUGGINGFACE_MODEL || 'meta-llama/Llama-3.1-8B-Instruct';
     const modelUrl = 'https://router.huggingface.co/v1/chat/completions';
 
-    const systemInstruction = `You are a world-class technical educator preparing placement study notes.
-Write a clear, structured Markdown reading module for students on topic: "${prompt}".
-Include:
-1. # Core Concepts & Detailed Explanation
-2. ## Code / SQL / Concrete Practical Examples with step-by-step explanations
-3. ## Real-World Industry Applications
-4. ## Key Interview Takeaways & Common Questions
-Format clearly in Markdown with code blocks and bullet points.`;
+    const systemInstruction = `You are a senior technical educator writing clean placement study notes.
+Write a clear, beautifully structured Markdown reading module on topic: "${prompt}".
+Rules:
+- Use standard Markdown headers (# Header 1, ## Header 2, ### Header 3). Do NOT use underline equals or hyphens (=== or ---) for headers.
+- Use standard bullet lists (- Item) and numbered lists (1. Item).
+- Format all code snippets in fenced code blocks with language specifiers (e.g. \`\`\`sql, \`\`\`javascript, \`\`\`cpp).
+- Bold important terminology using **bold text**.
+Structure:
+# Core Concepts & Overview
+## Detailed Explanation & Architecture
+## Real-World Code & Practical Examples
+## Industry Applications & Common Interview Questions`;
 
     const response = await fetch(modelUrl, {
       method: 'POST',

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, BookOpen, Clock, CheckCircle2, Copy, Check } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import CategoryPill from '../shared/CategoryPill';
 
 const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleComplete }) => {
@@ -21,90 +22,6 @@ const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleCom
       onToggleComplete(task.scheduleTask._id, task.scheduleTask.estimatedMinutes);
     }
     onClose();
-  };
-
-  // Simple Markdown Renderer for Headings, Lists, Bold, and Code Blocks
-  const renderMarkdown = (text) => {
-    const lines = text.split('\n');
-    let inCodeBlock = false;
-    let codeBuffer = [];
-
-    return lines.map((line, idx) => {
-      // Toggle Code Blocks
-      if (line.trim().startsWith('```')) {
-        if (inCodeBlock) {
-          inCodeBlock = false;
-          const codeText = codeBuffer.join('\n');
-          codeBuffer = [];
-          return (
-            <pre key={idx} className="bg-slate-950 p-4 rounded-xl text-xs md:text-sm font-mono text-emerald-400 overflow-x-auto my-3 border border-slate-700/80 shadow-inner">
-              <code>{codeText}</code>
-            </pre>
-          );
-        } else {
-          inCodeBlock = true;
-          return null;
-        }
-      }
-
-      if (inCodeBlock) {
-        codeBuffer.push(line);
-        return null;
-      }
-
-      // Headings
-      if (line.startsWith('# ')) {
-        return <h1 key={idx} className="text-xl md:text-2xl font-bold text-white mt-6 mb-3 pb-2 border-b border-slate-700">{line.replace('# ', '')}</h1>;
-      }
-      if (line.startsWith('## ')) {
-        return <h2 key={idx} className="text-lg md:text-xl font-bold text-indigo-400 mt-5 mb-2">{line.replace('## ', '')}</h2>;
-      }
-      if (line.startsWith('### ')) {
-        return <h3 key={idx} className="text-base font-bold text-slate-200 mt-4 mb-2">{line.replace('### ', '')}</h3>;
-      }
-
-      // Bullet lists
-      if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
-        const itemText = line.trim().substring(2);
-        return (
-          <li key={idx} className="text-slate-300 ml-4 my-1 list-disc text-sm md:text-base leading-relaxed">
-            {parseInlineStyles(itemText)}
-          </li>
-        );
-      }
-
-      // Horizontal Rule
-      if (line.trim() === '---') {
-        return <hr key={idx} className="border-slate-700 my-4" />;
-      }
-
-      // Empty line
-      if (!line.trim()) {
-        return <div key={idx} className="h-2" />;
-      }
-
-      // Regular Paragraph
-      return (
-        <p key={idx} className="text-slate-300 text-sm md:text-base leading-relaxed my-1.5">
-          {parseInlineStyles(line)}
-        </p>
-      );
-    });
-  };
-
-  // Helper for bold and inline code text
-  const parseInlineStyles = (str) => {
-    // Bold **text**
-    const parts = str.split(/(\*\*.*?\*\*|`.*?`)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} className="font-bold text-white">{part.slice(2, -2)}</strong>;
-      }
-      if (part.startsWith('`') && part.endsWith('`')) {
-        return <code key={i} className="bg-slate-900 text-amber-300 px-1.5 py-0.5 rounded text-xs font-mono border border-slate-700">{part.slice(1, -1)}</code>;
-      }
-      return part;
-    });
   };
 
   return (
@@ -144,9 +61,98 @@ const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleCom
           </div>
         </div>
 
-        {/* Reader Body */}
+        {/* Reader Body with ReactMarkdown & Styled Components */}
         <div className="flex-1 overflow-y-auto p-5 md:p-8 space-y-4 custom-scrollbar bg-slate-900/50">
-          {renderMarkdown(readingContent)}
+          <ReactMarkdown
+            components={{
+              h1: ({ children }) => (
+                <h1 className="text-xl md:text-2xl font-extrabold text-white mt-6 mb-3 pb-2 border-b border-slate-700/80 tracking-tight">
+                  {children}
+                </h1>
+              ),
+              h2: ({ children }) => (
+                <h2 className="text-lg md:text-xl font-bold text-indigo-400 mt-5 mb-2 flex items-center gap-2">
+                  {children}
+                </h2>
+              ),
+              h3: ({ children }) => (
+                <h3 className="text-base md:text-lg font-semibold text-purple-300 mt-4 mb-2">
+                  {children}
+                </h3>
+              ),
+              p: ({ children }) => (
+                <p className="text-slate-300 text-sm md:text-base leading-relaxed my-2">
+                  {children}
+                </p>
+              ),
+              strong: ({ children }) => (
+                <strong className="font-bold text-white bg-slate-800/80 px-1 py-0.5 rounded">
+                  {children}
+                </strong>
+              ),
+              em: ({ children }) => (
+                <em className="italic text-purple-200">{children}</em>
+              ),
+              ul: ({ children }) => (
+                <ul className="list-disc list-outside ml-5 space-y-1.5 text-slate-300 my-3 text-sm md:text-base">
+                  {children}
+                </ul>
+              ),
+              ol: ({ children }) => (
+                <ol className="list-decimal list-outside ml-5 space-y-1.5 text-slate-300 my-3 text-sm md:text-base">
+                  {children}
+                </ol>
+              ),
+              li: ({ children }) => (
+                <li className="leading-relaxed text-slate-300">{children}</li>
+              ),
+              blockquote: ({ children }) => (
+                <blockquote className="border-l-4 border-indigo-500 pl-4 py-2 my-4 bg-indigo-500/10 text-indigo-200 rounded-r-xl italic text-sm">
+                  {children}
+                </blockquote>
+              ),
+              hr: () => <hr className="border-slate-700/80 my-6" />,
+              code: ({ node, inline, className, children, ...props }) => {
+                if (inline) {
+                  return (
+                    <code className="bg-slate-800 text-amber-300 px-1.5 py-0.5 rounded text-xs font-mono border border-slate-700" {...props}>
+                      {children}
+                    </code>
+                  );
+                }
+                return (
+                  <pre className="bg-slate-950 p-4 rounded-xl text-xs md:text-sm font-mono text-emerald-400 overflow-x-auto my-4 border border-slate-700/80 shadow-inner">
+                    <code {...props}>{children}</code>
+                  </pre>
+                );
+              },
+              table: ({ children }) => (
+                <div className="overflow-x-auto my-4 rounded-xl border border-slate-700">
+                  <table className="w-full text-left text-xs md:text-sm text-slate-300 border-collapse">
+                    {children}
+                  </table>
+                </div>
+              ),
+              thead: ({ children }) => (
+                <thead className="bg-slate-800 text-slate-200 font-semibold border-b border-slate-700">
+                  {children}
+                </thead>
+              ),
+              tr: ({ children }) => (
+                <tr className="border-b border-slate-800 hover:bg-slate-800/40">
+                  {children}
+                </tr>
+              ),
+              th: ({ children }) => (
+                <th className="p-3 font-bold text-white">{children}</th>
+              ),
+              td: ({ children }) => (
+                <td className="p-3">{children}</td>
+              )
+            }}
+          >
+            {readingContent}
+          </ReactMarkdown>
         </div>
 
         {/* Footer */}
