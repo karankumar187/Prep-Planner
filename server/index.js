@@ -7,8 +7,15 @@ const authMiddleware = require('./middleware/auth');
 
 const app = express();
 
-// Connect to MongoDB
-connectDB();
+// Ensure MongoDB is connected before every request (serverless-safe: reuses cached connection)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).json({ message: 'Database connection failed' });
+  }
+});
 
 // Robust CORS configuration for Vercel deployment
 app.use(cors({
