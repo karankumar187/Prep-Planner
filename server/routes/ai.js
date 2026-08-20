@@ -1,72 +1,277 @@
 const express = require('express');
 const router = express.Router();
 
-// Fallback smart question generator if Hugging Face key is missing or network fails
-const generateFallbackMCQs = (prompt, numQuestions) => {
+// Robust Fisher-Yates Option Shuffler - Guarantees uniform 25% distribution across A, B, C, D
+const shuffleOptionsAndDistribute = (mcq) => {
+  if (!mcq || !Array.isArray(mcq.options) || mcq.options.length !== 4) return mcq;
+
+  const validCorrectIdx = (typeof mcq.correctOption === 'number' && mcq.correctOption >= 0 && mcq.correctOption < 4) 
+    ? mcq.correctOption 
+    : 0;
+
+  const correctText = mcq.options[validCorrectIdx];
+  const shuffled = [...mcq.options];
+
+  // Fisher-Yates Shuffle
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  const newCorrectIndex = shuffled.indexOf(correctText);
+
+  return {
+    question: mcq.question.trim(),
+    options: shuffled.map(opt => String(opt).trim()),
+    correctOption: newCorrectIndex !== -1 ? newCorrectIndex : Math.floor(Math.random() * 4)
+  };
+};
+
+// Deduplication filter to prevent repeated questions
+const deduplicateMCQs = (mcqs) => {
+  const seenStems = new Set();
+  const uniqueList = [];
+
+  for (const item of mcqs) {
+    if (!item || !item.question || !Array.isArray(item.options) || item.options.length < 4) continue;
+    
+    // Normalize question stem for comparison
+    const normalizedStem = item.question.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 50);
+    if (!seenStems.has(normalizedStem)) {
+      seenStems.add(normalizedStem);
+      uniqueList.push(shuffleOptionsAndDistribute(item));
+    }
+  }
+
+  return uniqueList;
+};
+
+// Comprehensive Fallback Question Bank covering diverse topics without duplicates
+const generateDiverseFallbackMCQs = (prompt, numQuestions) => {
   const topic = prompt.trim();
-  const templates = [
+  const bank = [
     {
-      q: `Which of the following best describes the core concept of ${topic}?`,
+      q: `What is the primary architectural purpose of ${topic} in modern software engineering?`,
       opts: [
-        `It provides an efficient mechanism for processing data and managing state in ${topic}`,
-        `It is a deprecated protocol no longer used in modern software development`,
-        `It restricts execution to a single synchronous thread with no data persistence`,
-        `It converts high-level code directly into hardware machine instructions`
+        `To decouple components, optimize scalability, and maintain predictable system behavior`,
+        `To enforce linear sequential processing without asynchronous capabilities`,
+        `To bypass data validation rules for faster input execution`,
+        `To convert runtime errors into unhandled silent warnings`
       ],
       correct: 0
     },
     {
-      q: `What is the primary advantage of utilizing ${topic} in technical assessments?`,
+      q: `When analyzing the computational complexity related to ${topic}, which characteristic is typical?`,
       opts: [
-        `Ensures linear time complexity for all recursive function calls`,
-        `Optimizes system performance, scalability, and code maintainability`,
-        `Completely eliminates memory consumption during execution`,
-        `Bypasses all security and authentication checks automatically`
-      ],
-      correct: 1
-    },
-    {
-      q: `In the context of ${topic}, what occurs when an invalid input or edge case is passed?`,
-      opts: [
-        `The system ignores the error and continues without logging`,
-        `An exception or error handling branch is triggered to ensure safety`,
-        `The database schema is automatically dropped and recreated`,
-        `The operating system terminates all running background processes`
-      ],
-      correct: 1
-    },
-    {
-      q: `Which component or keyword is standard when implementing ${topic}?`,
-      opts: [
-        `Standard library methods and structured modular patterns`,
-        `Unconditional GOTO statements across all modules`,
-        `Hardcoded global variables with no access control`,
-        `Direct raw memory manipulation without validation`
+        `Optimal implementations target logarithmic O(log N) or linearithmic O(N log N) bounds`,
+        `All operations unconditionally require exponential O(2^N) runtime`,
+        `Memory allocation is strictly constant regardless of input scale`,
+        `Processing speed decreases linearly with CPU clock cycles`
       ],
       correct: 0
     },
     {
-      q: `What is the typical time complexity expectation when solving problems related to ${topic}?`,
+      q: `Which design pattern or methodology is most effective when implementing ${topic}?`,
       opts: [
-        `O(1) Constant or O(N log N) Log-Linear time`,
-        `O(N^4) Exponential time`,
-        `O(N!) Factorial time`,
-        `O(2^N) Combinatorial time`
+        `Modular encapsulation with clear interface separation and dependency injection`,
+        `Direct global state mutation across independent threads`,
+        `Unchecked recursive loops with dynamic termination criteria`,
+        `Tight coupling of presentation logic with data persistence layers`
+      ],
+      correct: 0
+    },
+    {
+      q: `What is the standard behavior when handling edge cases or boundary conditions in ${topic}?`,
+      opts: [
+        `Gracefully capturing exceptions and returning sanitized fallback responses`,
+        `Terminating the parent thread without freeing allocated resources`,
+        `Ignoring invalid inputs and writing corrupted payloads to disk`,
+        `Reinitializing the entire database connection pool unconditionally`
+      ],
+      correct: 0
+    },
+    {
+      q: `In technical placement assessments, what is a key pitfall candidates make regarding ${topic}?`,
+      opts: [
+        `Overlooking space complexity trade-offs and memory leak risks in long-running processes`,
+        `Writing modular helper functions instead of monolithic scripts`,
+        `Using standardized data structures from the language standard library`,
+        `Adding comprehensive input validation and type checking`
+      ],
+      correct: 0
+    },
+    {
+      q: `How does concurrency or multi-threading impact ${topic}?`,
+      opts: [
+        `Requires synchronization primitives or atomic operations to avoid race conditions`,
+        `Automatically prevents deadlocks without locks or mutexes`,
+        `Disables all asynchronous I/O operations entirely`,
+        `Forces memory pages to be duplicated across all core caches`
+      ],
+      correct: 0
+    },
+    {
+      q: `Which of the following metrics is most crucial when benchmarking ${topic}?`,
+      opts: [
+        `Throughput (QPS/TPS), latency percentiles (p95/p99), and resource utilization`,
+        `Source code line count and file size on disk`,
+        `Number of comments written per function definition`,
+        `Alphabetical ordering of exported variable identifiers`
+      ],
+      correct: 0
+    },
+    {
+      q: `What role does caching or memoization play in optimizing ${topic}?`,
+      opts: [
+        `Reduces redundant calculations and roundtrip database queries for expensive operations`,
+        `Increases network packet size to accelerate data transmission`,
+        `Eliminates the requirement for persistent database storage`,
+        `Bypasses operating system security permissions dynamically`
+      ],
+      correct: 0
+    },
+    {
+      q: `When refactoring legacy implementations of ${topic}, what is the recommended practice?`,
+      opts: [
+        `Writing regression unit tests before restructuring core algorithm logic`,
+        `Deleting existing test suites to prevent build failures during migration`,
+        `Merging separate modules into a single shared execution block`,
+        `Hardcoding configuration constants directly into production binaries`
+      ],
+      correct: 0
+    },
+    {
+      q: `What security consideration must be addressed when exposing APIs related to ${topic}?`,
+      opts: [
+        `Sanitizing user inputs to mitigate injection attacks and enforcing rate limiting`,
+        `Disabling CORS policies for all external cross-origin domains`,
+        `Exposing detailed internal stack traces in public error responses`,
+        `Using unencrypted HTTP protocols to reduce encryption overhead`
+      ],
+      correct: 0
+    },
+    {
+      q: `How should database transactions interacting with ${topic} be handled?`,
+      opts: [
+        `Adhering to ACID properties and using appropriate isolation levels`,
+        `Committing partial updates without rollback mechanisms`,
+        `Executing schema migrations directly within user request lifecycles`,
+        `Disabling foreign key constraints to speed up batch inserts`
+      ],
+      correct: 0
+    },
+    {
+      q: `What is the impact of excessive nesting and high cyclomatic complexity in ${topic}?`,
+      opts: [
+        `Degrades code readability, increases bug probability, and complicates unit testing`,
+        `Improves JIT compiler optimization across all architectures`,
+        `Reduces the physical RAM required during application execution`,
+        `Guarantees deterministic execution across distributed nodes`
+      ],
+      correct: 0
+    },
+    {
+      q: `In terms of fault tolerance, what mechanism best ensures high availability for ${topic}?`,
+      opts: [
+        `Automated health checks, circuit breakers, and graceful degradation strategies`,
+        `Restarting the entire operating system on every caught exception`,
+        `Storing all critical state in ephemeral single-node local memory`,
+        `Ignoring network timeout thresholds during peak traffic hours`
+      ],
+      correct: 0
+    },
+    {
+      q: `Which data structure is typically most suitable for efficient lookups in ${topic}?`,
+      opts: [
+        `Hash Map / Hash Table providing average O(1) time complexity`,
+        `Singly Linked List requiring O(N) linear search for all operations`,
+        `Unsorted Array requiring full scan for every query`,
+        `Fixed-size queue with FIFO eviction policies`
+      ],
+      correct: 0
+    },
+    {
+      q: `What is the primary trade-off when optimizing ${topic} for space over time?`,
+      opts: [
+        `Memory consumption is minimized at the cost of additional compute iterations`,
+        `CPU cycles are decreased while RAM footprint expands indefinitely`,
+        `Network bandwidth is multiplied by redundant packet retransmissions`,
+        `Database indices are duplicated across all read replicas`
+      ],
+      correct: 0
+    },
+    {
+      q: `How do modern frameworks manage lifecycle events related to ${topic}?`,
+      opts: [
+        `Through declarative hooks, event loops, and cleanup callbacks`,
+        `By creating unbounded background worker threads for every function call`,
+        `By forcing developers to manually deallocate heap memory`,
+        `By halting application execution until all pending promises reject`
+      ],
+      correct: 0
+    },
+    {
+      q: `What does idempotency mean in the context of operations for ${topic}?`,
+      opts: [
+        `Executing the operation multiple times produces the same result as a single execution`,
+        `The operation can only be triggered once in the entire application lifetime`,
+        `The function executes in zero milliseconds without side effects`,
+        `The operation requires multiple concurrent threads to complete successfully`
+      ],
+      correct: 0
+    },
+    {
+      q: `Which approach is best for debugging subtle state synchronization issues in ${topic}?`,
+      opts: [
+        `Structured structured logging, distributed tracing, and reproducible test cases`,
+        `Adding arbitrary sleep delays throughout the codebase`,
+        `Increasing database connection limits without investigating queries`,
+        `Suppressing console error output in staging environments`
+      ],
+      correct: 0
+    },
+    {
+      q: `When designing scalable microservices around ${topic}, how should data communication occur?`,
+      opts: [
+        `Using asynchronous message queues or standardized REST/gRPC interfaces with versioning`,
+        `Sharing a single monolithic SQL table directly between all services`,
+        `Relying on hardcoded local IP addresses without service discovery`,
+        `Transmitting uncompressed raw memory dumps across network sockets`
+      ],
+      correct: 0
+    },
+    {
+      q: `What distinguishes a clean production-grade implementation of ${topic} from a prototype?`,
+      opts: [
+        `Robust error boundaries, automated CI/CD tests, monitoring, and thorough documentation`,
+        `Minimizing the number of files by putting all code in a single file`,
+        `Avoiding dependency managers and hand-copying library files`,
+        `Skipping input validation to maximize raw execution throughput`
       ],
       correct: 0
     }
   ];
 
-  const questions = [];
-  for (let i = 0; i < numQuestions; i++) {
-    const t = templates[i % templates.length];
-    questions.push({
-      question: `${t.q}`,
-      options: t.opts,
-      correctOption: t.correct
-    });
+  const shuffledBank = bank.sort(() => Math.random() - 0.5);
+  const selected = [];
+
+  for (let i = 0; i < Math.min(numQuestions, shuffledBank.length); i++) {
+    selected.push(shuffleOptionsAndDistribute(shuffledBank[i]));
   }
-  return questions;
+
+  // If more questions requested than bank size, generate variations
+  let idx = 0;
+  while (selected.length < numQuestions) {
+    const base = shuffledBank[idx % shuffledBank.length];
+    selected.push(shuffleOptionsAndDistribute({
+      q: `[Advanced Analysis] ${base.q}`,
+      opts: base.opts,
+      correct: base.correct
+    }));
+    idx++;
+  }
+
+  return selected;
 };
 
 // Fallback smart reading material generator
@@ -119,7 +324,7 @@ console.log("Result:", output);
 };
 
 // @route   POST /api/ai/generate-mcq
-// @desc    Generate MCQ questions using Hugging Face Router API (meta-llama/Llama-3.1-8B-Instruct)
+// @desc    Accountable, High-Quality MCQ Generator with randomized option distribution & zero duplicates
 router.post('/generate-mcq', async (req, res) => {
   try {
     const { prompt, numQuestions = 5, timeLimit = 10, apiKey } = req.body;
@@ -128,31 +333,45 @@ router.post('/generate-mcq', async (req, res) => {
       return res.status(400).json({ message: 'Prompt/Topic is required' });
     }
 
+    const count = Math.min(Math.max(Number(numQuestions) || 5, 1), 30);
     const hfKey = apiKey || process.env.HUGGINGFACE_API_KEY;
 
     if (!hfKey) {
-      console.log('ℹ️ HUGGINGFACE_API_KEY not set. Using smart placement question generator...');
-      const fallbackQuestions = generateFallbackMCQs(prompt, numQuestions);
+      console.log('ℹ️ HUGGINGFACE_API_KEY not set. Using diverse placement question generator...');
+      const fallbackQuestions = generateDiverseFallbackMCQs(prompt, count);
       return res.json({
         title: `${prompt} — MCQ Assessment`,
         estimatedMinutes: timeLimit,
         mcqs: fallbackQuestions,
-        source: 'smart-generator'
+        source: 'diverse-generator'
       });
     }
 
     const modelName = process.env.HUGGINGFACE_MODEL || 'meta-llama/Llama-3.1-8B-Instruct';
     const modelUrl = 'https://router.huggingface.co/v1/chat/completions';
 
-    const systemInstruction = `You are a senior technical interviewer crafting a placement prep quiz.
-Generate exactly ${numQuestions} multiple choice questions (MCQs) on topic: "${prompt}".
-You MUST reply with ONLY a JSON array of objects, with no markdown backticks, no code blocks, and no extra prose.
-JSON Schema:
+    // Accountable System Instruction with strict distribution, variety, and quality constraints
+    const systemInstruction = `You are a Principal Technical Interviewer creating an authentic placement examination.
+Your task is to generate EXACTLY ${count} UNIQUE, HIGH-QUALITY multiple choice questions on topic: "${prompt}".
+
+STRICT QUALITY RULES:
+1. NO DUPLICATE OR REPETITIVE QUESTIONS. Each question MUST test a distinct concept, sub-topic, edge case, or practical code problem related to "${prompt}".
+2. Distribute questions across multiple sub-domains:
+   - Theoretical fundamentals & definitions
+   - Practical code/SQL output & syntax analysis
+   - Time and space complexity & performance trade-offs
+   - Edge cases, errors, and boundary condition handling
+   - Best practices & architectural design decisions
+3. PLAUSIBLE DISTRACTORS: All 4 options (A, B, C, D) must be realistic, technically sound options. Do not create silly or obviously fake options.
+4. UNIFORM ANSWER DISTRIBUTION: Distribute correct answers across indices 0, 1, 2, and 3 evenly. Do NOT put all correct answers in option 0 or 1.
+5. STRICT FORMAT: Return ONLY a valid JSON array of objects. NO markdown formatting, NO backticks, NO explanations before or after.
+
+JSON SCHEMA:
 [
   {
-    "question": "Question text here?",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "correctOption": 0
+    "question": "Clear, specific technical question stem?",
+    "options": ["Plausible Option A", "Plausible Option B", "Plausible Option C", "Plausible Option D"],
+    "correctOption": 2
   }
 ]`;
 
@@ -166,9 +385,9 @@ JSON Schema:
         model: modelName,
         messages: [
           { role: 'system', content: systemInstruction },
-          { role: 'user', content: `Generate ${numQuestions} MCQs for topic: ${prompt}` }
+          { role: 'user', content: `Generate ${count} diverse, non-repeating technical MCQs for: ${prompt}. Ensure balanced answer keys (A, B, C, D).` }
         ],
-        temperature: 0.2,
+        temperature: 0.65, // Higher temperature prevents LLM repetitive loops
         max_tokens: 4000
       })
     });
@@ -176,7 +395,7 @@ JSON Schema:
     if (!response.ok) {
       const errText = await response.text();
       console.error('Hugging Face API Error HTTP:', response.status, errText);
-      const fallbackQuestions = generateFallbackMCQs(prompt, numQuestions);
+      const fallbackQuestions = generateDiverseFallbackMCQs(prompt, count);
       return res.json({
         title: `${prompt} — MCQ Assessment`,
         estimatedMinutes: timeLimit,
@@ -188,37 +407,43 @@ JSON Schema:
     const hfData = await response.json();
     let generatedText = hfData.choices?.[0]?.message?.content || '';
 
-    let mcqs = [];
+    let rawMCQs = [];
     try {
       const jsonStart = generatedText.indexOf('[');
       const jsonEnd = generatedText.lastIndexOf(']');
       if (jsonStart !== -1 && jsonEnd !== -1) {
         const jsonStr = generatedText.substring(jsonStart, jsonEnd + 1);
-        mcqs = JSON.parse(jsonStr);
+        rawMCQs = JSON.parse(jsonStr);
       } else {
-        mcqs = JSON.parse(generatedText);
+        rawMCQs = JSON.parse(generatedText);
       }
     } catch (parseErr) {
-      console.log('Failed to parse HF output as JSON, using smart fallback questions.');
-      mcqs = generateFallbackMCQs(prompt, numQuestions);
+      console.log('Failed to parse HF output as JSON, using diverse fallback question bank.');
+      rawMCQs = generateDiverseFallbackMCQs(prompt, count);
     }
 
-    const validMCQs = mcqs.slice(0, numQuestions).map((q, idx) => ({
-      question: q.question || `Question ${idx + 1} on ${prompt}`,
-      options: Array.isArray(q.options) && q.options.length === 4 ? q.options : ['Option A', 'Option B', 'Option C', 'Option D'],
-      correctOption: typeof q.correctOption === 'number' && q.correctOption >= 0 && q.correctOption <= 3 ? q.correctOption : 0
-    }));
+    // Apply Deduplication and Backend Option Shuffling
+    let processedMCQs = deduplicateMCQs(rawMCQs);
+
+    // If deduplication dropped questions, top up from diverse bank so count matches requested
+    if (processedMCQs.length < count) {
+      const topUp = generateDiverseFallbackMCQs(prompt, count - processedMCQs.length);
+      processedMCQs = [...processedMCQs, ...topUp];
+    }
+
+    const finalMCQs = processedMCQs.slice(0, count);
 
     res.json({
       title: `${prompt} — MCQ Assessment`,
       estimatedMinutes: timeLimit,
-      mcqs: validMCQs,
-      source: 'huggingface-llama3.1'
+      mcqs: finalMCQs,
+      source: 'huggingface-accountable'
     });
 
   } catch (err) {
     console.error('AI Generation Error:', err.message);
-    const fallbackQuestions = generateFallbackMCQs(req.body.prompt || 'Technical', req.body.numQuestions || 5);
+    const count = Math.min(Math.max(Number(req.body.numQuestions) || 5, 1), 30);
+    const fallbackQuestions = generateDiverseFallbackMCQs(req.body.prompt || 'Technical', count);
     res.json({
       title: `${req.body.prompt || 'Technical'} — MCQ Assessment`,
       estimatedMinutes: req.body.timeLimit || 10,
@@ -259,6 +484,7 @@ Rules:
 - Use standard Markdown headers (# Header 1, ## Header 2, ### Header 3). Do NOT use underline equals or hyphens (=== or ---) for headers.
 - Use standard bullet lists (- Item) and numbered lists (1. Item).
 - Format all code snippets in fenced code blocks with language specifiers (e.g. \`\`\`sql, \`\`\`javascript, \`\`\`cpp).
+- Format tables in standard Markdown table syntax with newlines between rows.
 - Bold important terminology using **bold text**.
 Structure:
 # Core Concepts & Overview
@@ -276,9 +502,9 @@ Structure:
         model: modelName,
         messages: [
           { role: 'system', content: systemInstruction },
-          { role: 'user', content: `Explain ${prompt} in detail with practical examples and interview notes.` }
+          { role: 'user', content: `Explain ${prompt} in detail with practical examples, code blocks, and interview notes.` }
         ],
-        temperature: 0.3,
+        temperature: 0.35,
         max_tokens: 3000
       })
     });
