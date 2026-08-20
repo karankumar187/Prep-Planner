@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, BookOpen, Clock, CheckCircle2, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import CategoryPill from '../shared/CategoryPill';
 
 const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleComplete }) => {
@@ -8,8 +9,20 @@ const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleCom
 
   if (!isOpen || !task) return null;
 
-  const readingContent = task.scheduleTask?.readingContent || 'No study notes provided for this module.';
+  const rawContent = task.scheduleTask?.readingContent || 'No study notes provided for this module.';
   const isCompleted = task.completed;
+
+  // Pre-processor for single-line LLM table outputs (converts || or | | between rows to newlines)
+  const preprocessContent = (content) => {
+    if (!content) return '';
+    
+    // Replace double pipes (||) or (| |) separating table rows with newlines (\n|)
+    let formatted = content.replace(/\|\s*\|/g, '|\n|');
+
+    return formatted;
+  };
+
+  const readingContent = preprocessContent(rawContent);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(readingContent);
@@ -61,9 +74,10 @@ const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleCom
           </div>
         </div>
 
-        {/* Reader Body with ReactMarkdown & Styled Components */}
+        {/* Reader Body with ReactMarkdown, remarkGfm & Styled Table Components */}
         <div className="flex-1 overflow-y-auto p-5 md:p-8 space-y-4 custom-scrollbar bg-slate-900/50">
           <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
             components={{
               h1: ({ children }) => (
                 <h1 className="text-xl md:text-2xl font-extrabold text-white mt-6 mb-3 pb-2 border-b border-slate-700/80 tracking-tight">
@@ -127,27 +141,32 @@ const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleCom
                 );
               },
               table: ({ children }) => (
-                <div className="overflow-x-auto my-4 rounded-xl border border-slate-700">
-                  <table className="w-full text-left text-xs md:text-sm text-slate-300 border-collapse">
+                <div className="overflow-x-auto my-5 rounded-xl border border-slate-700 shadow-lg bg-slate-900/80">
+                  <table className="w-full text-left text-xs md:text-sm text-slate-200 border-collapse">
                     {children}
                   </table>
                 </div>
               ),
               thead: ({ children }) => (
-                <thead className="bg-slate-800 text-slate-200 font-semibold border-b border-slate-700">
+                <thead className="bg-slate-800 text-indigo-300 font-bold border-b border-slate-700">
                   {children}
                 </thead>
               ),
+              tbody: ({ children }) => (
+                <tbody className="divide-y divide-slate-800/80">
+                  {children}
+                </tbody>
+              ),
               tr: ({ children }) => (
-                <tr className="border-b border-slate-800 hover:bg-slate-800/40">
+                <tr className="hover:bg-slate-800/50 transition-colors">
                   {children}
                 </tr>
               ),
               th: ({ children }) => (
-                <th className="p-3 font-bold text-white">{children}</th>
+                <th className="p-3.5 font-bold border-r border-slate-700/60 last:border-r-0">{children}</th>
               ),
               td: ({ children }) => (
-                <td className="p-3">{children}</td>
+                <td className="p-3 border-r border-slate-800/60 last:border-r-0">{children}</td>
               )
             }}
           >
