@@ -8,7 +8,7 @@ import { AuthContext } from '../context/AuthContext';
 import { getProgress, toggleComplete, addScheduleTask, updateScheduleTask, deleteScheduleTask } from '../utils/api';
 import { isUserCreator } from '../utils/constants';
 import { format } from 'date-fns';
-import { Plus, HelpCircle, Calendar as CalendarIcon, CheckCircle2, Clock, Sparkles, Filter } from 'lucide-react';
+import { Plus, HelpCircle, Calendar as CalendarIcon, CheckCircle2, Clock } from 'lucide-react';
 
 const Calendar = () => {
   const { selectedEnrollment } = useContext(AppContext);
@@ -138,39 +138,39 @@ const Calendar = () => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Calendar & Daily Planner</h1>
-          <p className="text-sm text-slate-400 mt-0.5">Track your curriculum date-by-date and monitor your completion consistency</p>
+          <h1 className="text-xl md:text-2xl font-extrabold text-white tracking-tight">Calendar & Daily Planner</h1>
+          <p className="text-xs text-slate-400">Track curriculum date-by-date and monitor your consistency</p>
         </div>
 
         {isCreator && (
           <div className="flex items-center gap-2">
             <button 
               onClick={() => openForm('task')}
-              className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-xl font-semibold shadow-md shadow-indigo-600/20 transition-all active:scale-95"
+              className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-xl font-semibold shadow-md shadow-indigo-600/20 transition-all active:scale-95"
             >
-              <Plus size={15} />
+              <Plus size={14} />
               <span>Add Task</span>
             </button>
             <button 
               onClick={() => openForm('assessment')}
-              className="flex items-center gap-1.5 text-xs bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white px-3.5 py-2 rounded-xl font-semibold shadow-md shadow-rose-600/20 transition-all active:scale-95"
+              className="flex items-center gap-1.5 text-xs bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white px-3 py-1.5 rounded-xl font-semibold shadow-md shadow-rose-600/20 transition-all active:scale-95"
             >
-              <HelpCircle size={15} />
+              <HelpCircle size={14} />
               <span>Add Quiz</span>
             </button>
           </div>
         )}
       </div>
       
-      {/* 2-Column Responsive Layout: Left Calendar Grid (2 cols), Right Minimal Tasks Panel (1 col) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* 2-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         
         {/* Left Side: Calendar Grid & Legend (7 cols) */}
-        <div className="lg:col-span-7 space-y-4">
+        <div className="lg:col-span-7 space-y-3">
           <CalendarGrid 
             selectedDate={selectedDate} 
             onSelectDate={setSelectedDate}
@@ -182,29 +182,29 @@ const Calendar = () => {
         </div>
         
         {/* Right Side: Clean & Minimal Daily Tasks Sidebar (5 cols) */}
-        <div className="lg:col-span-5 flex flex-col gap-4">
-          <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+        <div className="lg:col-span-5 flex flex-col gap-3">
+          <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-4 shadow-xl flex flex-col gap-3">
             
             {/* Header of Selected Day */}
-            <div className="flex justify-between items-start pb-3 border-b border-slate-700/60">
+            <div className="flex justify-between items-start pb-2.5 border-b border-slate-700/50">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 uppercase tracking-wider">
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 uppercase tracking-wider">
                     Day {currentDayNum}
                   </span>
                   <span className="text-xs text-slate-400 flex items-center gap-1">
-                    <Clock size={12} />
+                    <Clock size={11} />
                     {totalEstimatedMins}m est.
                   </span>
                 </div>
-                <h3 className="text-lg font-bold text-white mt-1">
+                <h3 className="text-base md:text-lg font-bold text-white mt-0.5">
                   {format(selectedDate, 'EEEE, MMM d, yyyy')}
                 </h3>
               </div>
 
-              {/* Progress Ring / Percentage Badge */}
+              {/* Progress Percentage Badge */}
               <div className="flex flex-col items-end">
-                <span className="text-xl font-black text-indigo-400">
+                <span className="text-lg font-black text-indigo-400">
                   {dayCompletionRate}%
                 </span>
                 <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
@@ -215,12 +215,12 @@ const Calendar = () => {
 
             {/* Daily Progress Bar */}
             {totalDayTasks > 0 && (
-              <div className="w-full bg-slate-900/60 rounded-full h-1.5 overflow-hidden border border-slate-750">
+              <div className="w-full bg-slate-900/60 rounded-full h-1.5 overflow-hidden border border-slate-700/40">
                 <div 
                   className={`h-full transition-all duration-500 rounded-full ${
                     dayCompletionRate === 100 
-                      ? 'bg-emerald-400 shadow-sm shadow-emerald-500/50' 
-                      : 'bg-gradient-to-r from-indigo-500 to-indigo-400'
+                      ? 'bg-emerald-400' 
+                      : 'bg-indigo-500'
                   }`}
                   style={{ width: `${dayCompletionRate}%` }}
                 />
@@ -229,10 +229,10 @@ const Calendar = () => {
 
             {/* Filter Tabs */}
             {totalDayTasks > 0 && (
-              <div className="flex items-center gap-1.5 p-1 bg-slate-900/60 rounded-xl border border-slate-750 text-xs">
+              <div className="flex items-center gap-1 p-1 bg-slate-900/60 rounded-xl border border-slate-700/40 text-xs">
                 <button
                   onClick={() => setActiveFilter('all')}
-                  className={`flex-1 py-1.5 rounded-lg font-semibold transition-all ${
+                  className={`flex-1 py-1 rounded-lg font-semibold text-xs transition-all ${
                     activeFilter === 'all' 
                       ? 'bg-slate-700 text-white shadow-sm' 
                       : 'text-slate-400 hover:text-slate-200'
@@ -242,7 +242,7 @@ const Calendar = () => {
                 </button>
                 <button
                   onClick={() => setActiveFilter('pending')}
-                  className={`flex-1 py-1.5 rounded-lg font-semibold transition-all ${
+                  className={`flex-1 py-1 rounded-lg font-semibold text-xs transition-all ${
                     activeFilter === 'pending' 
                       ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
                       : 'text-slate-400 hover:text-slate-200'
@@ -252,7 +252,7 @@ const Calendar = () => {
                 </button>
                 <button
                   onClick={() => setActiveFilter('completed')}
-                  className={`flex-1 py-1.5 rounded-lg font-semibold transition-all ${
+                  className={`flex-1 py-1 rounded-lg font-semibold text-xs transition-all ${
                     activeFilter === 'completed' 
                       ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
                       : 'text-slate-400 hover:text-slate-200'
@@ -265,23 +265,23 @@ const Calendar = () => {
 
             {/* Tasks List */}
             {filteredTasks.length === 0 ? (
-              <div className="text-center py-10 px-4 bg-slate-900/30 rounded-xl border border-dashed border-slate-700/60 text-slate-400 text-sm">
+              <div className="text-center py-8 px-4 bg-slate-900/30 rounded-xl border border-dashed border-slate-700/50 text-slate-400 text-xs">
                 {totalDayTasks === 0 ? (
                   <>
-                    <CalendarIcon size={28} className="mx-auto mb-2 text-slate-600" />
-                    <p className="font-medium text-slate-300">No curriculum planned for Day {currentDayNum}</p>
-                    <p className="text-xs text-slate-500 mt-1 mb-4">You can take this day to revise or add custom study tasks below.</p>
+                    <CalendarIcon size={24} className="mx-auto mb-1.5 text-slate-600" />
+                    <p className="font-medium text-slate-300">No tasks for Day {currentDayNum}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5 mb-3">You can add custom tasks below.</p>
                     {isCreator && (
                       <div className="flex justify-center gap-2">
                         <button 
                           onClick={() => openForm('task')} 
-                          className="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-lg font-semibold hover:bg-indigo-500/30 transition-colors"
+                          className="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded-lg font-semibold hover:bg-indigo-500/30 transition-colors"
                         >
                           + Add Task
                         </button>
                         <button 
                           onClick={() => openForm('assessment')} 
-                          className="text-xs bg-rose-500/20 text-rose-300 border border-rose-500/30 px-3 py-1.5 rounded-lg font-semibold hover:bg-rose-500/30 transition-colors"
+                          className="text-xs bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2.5 py-1 rounded-lg font-semibold hover:bg-rose-500/30 transition-colors"
                         >
                           + Add Quiz
                         </button>
@@ -290,14 +290,14 @@ const Calendar = () => {
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 size={28} className="mx-auto mb-2 text-emerald-500/60" />
+                    <CheckCircle2 size={24} className="mx-auto mb-1.5 text-emerald-500/60" />
                     <p className="font-medium text-slate-300">No {activeFilter} tasks found</p>
-                    <p className="text-xs text-slate-500 mt-1">Switch to another tab to view all day items.</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Switch tabs to view other day items.</p>
                   </>
                 )}
               </div>
             ) : (
-              <div className="space-y-2.5 max-h-[620px] overflow-y-auto pr-1 custom-scrollbar">
+              <div className="space-y-2 max-h-[470px] overflow-y-auto pr-1 custom-scrollbar">
                 {[...filteredTasks]
                   .sort((a, b) => (a.completed === b.completed ? 0 : a.completed ? 1 : -1))
                   .map(task => (

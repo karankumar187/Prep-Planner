@@ -1,6 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { CheckCircle2, Clock } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { CATEGORY_COLORS } from '../../utils/constants';
 
 const CalendarDayCell = ({ date, isToday, isSelected, isCurrentMonth, tasks, onClick }) => {
@@ -21,20 +21,20 @@ const CalendarDayCell = ({ date, isToday, isSelected, isCurrentMonth, tasks, onC
   return (
     <div 
       onClick={onClick}
-      className={`min-h-[85px] md:min-h-[105px] p-2 md:p-2.5 flex flex-col justify-between cursor-pointer transition-all duration-150 relative group select-none border-b border-r border-slate-750
-        ${!isCurrentMonth ? 'bg-slate-900/40 opacity-40 hover:opacity-75' : 'bg-slate-800/80 hover:bg-slate-750/90'}
-        ${isSelected ? 'bg-indigo-950/40 ring-2 ring-indigo-500 z-10 shadow-lg shadow-indigo-500/10' : ''}
+      className={`h-[56px] md:h-[68px] p-1.5 md:p-2 flex flex-col justify-between cursor-pointer transition-all duration-150 relative group select-none
+        ${!isCurrentMonth ? 'bg-slate-900/40 opacity-30 hover:opacity-70' : 'bg-slate-850 hover:bg-slate-800'}
+        ${isSelected ? 'bg-indigo-950/60 ring-1 ring-indigo-500/70 z-10' : ''}
         ${isAllCompleted ? 'bg-emerald-950/20' : ''}
       `}
     >
       {/* Top row: Date Number & Completion Badge */}
-      <div className="flex items-center justify-between gap-1">
-        <span className={`w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-lg text-xs md:text-sm font-semibold transition-all
+      <div className="flex items-center justify-between gap-1 leading-none">
+        <span className={`w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded-md text-[11px] md:text-xs font-semibold transition-all
           ${isToday 
-            ? 'bg-indigo-500 text-white font-bold shadow-sm shadow-indigo-500/50' 
+            ? 'bg-indigo-500 text-white font-bold shadow-sm shadow-indigo-500/40' 
             : isSelected
-            ? 'bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/40'
-            : isCurrentMonth ? 'text-slate-200 group-hover:text-white' : 'text-slate-500'
+            ? 'bg-indigo-500/25 text-indigo-300 font-bold border border-indigo-500/40'
+            : isCurrentMonth ? 'text-slate-300 group-hover:text-white' : 'text-slate-500'
           }
         `}>
           {format(date, 'd')}
@@ -44,15 +44,15 @@ const CalendarDayCell = ({ date, isToday, isSelected, isCurrentMonth, tasks, onC
         {hasTasks && (
           <div className="flex items-center">
             {isAllCompleted ? (
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                <CheckCircle2 size={10} className="stroke-[2.5]" />
-                <span className="hidden sm:inline">{completedTasks}/{totalTasks}</span>
+              <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 leading-none">
+                <CheckCircle2 size={9} className="stroke-[2.5]" />
+                <span>{completedTasks}/{totalTasks}</span>
               </span>
             ) : (
-              <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-medium border ${
+              <span className={`px-1 py-0.5 rounded text-[9px] font-medium border leading-none ${
                 completedTasks > 0 
                   ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30' 
-                  : 'bg-slate-700/60 text-slate-400 border-slate-600/50'
+                  : 'bg-slate-800 text-slate-400 border-slate-700/60'
               }`}>
                 {completedTasks}/{totalTasks}
               </span>
@@ -61,53 +61,51 @@ const CalendarDayCell = ({ date, isToday, isSelected, isCurrentMonth, tasks, onC
         )}
       </div>
 
-      {/* Middle row: Progress bar if day has tasks */}
+      {/* Middle: Progress bar if day has tasks */}
       {hasTasks ? (
-        <div className="my-1.5">
-          <div className="w-full bg-slate-700/80 rounded-full h-1 overflow-hidden">
-            <div 
-              className={`h-full rounded-full transition-all duration-300 ${
-                isAllCompleted 
-                  ? 'bg-emerald-400' 
-                  : completedTasks > 0 
-                  ? 'bg-gradient-to-r from-indigo-500 to-indigo-400' 
-                  : 'bg-transparent'
-              }`}
-              style={{ width: `${completionPercentage}%` }}
-            />
-          </div>
+        <div className="w-full bg-slate-800 rounded-full h-1 overflow-hidden my-0.5 border border-slate-700/40">
+          <div 
+            className={`h-full rounded-full transition-all duration-300 ${
+              isAllCompleted 
+                ? 'bg-emerald-400' 
+                : completedTasks > 0 
+                ? 'bg-indigo-400' 
+                : 'bg-transparent'
+            }`}
+            style={{ width: `${completionPercentage}%` }}
+          />
         </div>
       ) : (
-        <div className="my-1.5 h-1" />
+        <div className="h-1 my-0.5" />
       )}
 
-      {/* Bottom row: Category dots & extra indicator */}
-      <div className="flex items-center justify-between pt-0.5 min-h-[14px]">
+      {/* Bottom row: Category dots */}
+      <div className="flex items-center justify-between pt-0.5 min-h-[10px] leading-none">
         {hasTasks ? (
           <div className="flex items-center gap-1 flex-wrap">
             {visibleCategories.map((cat, i) => (
               <span 
                 key={i} 
-                className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full flex-shrink-0"
+                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                 style={{ backgroundColor: CATEGORY_COLORS[cat] || '#818cf8' }}
                 title={cat}
               />
             ))}
             {extraCategoriesCount > 0 && (
-              <span className="text-[9px] font-bold text-slate-400 leading-none">
+              <span className="text-[8px] font-bold text-slate-400 leading-none">
                 +{extraCategoriesCount}
               </span>
             )}
           </div>
         ) : (
-          <span className="text-[10px] text-slate-600 font-normal italic">
+          <span className="text-[9px] text-slate-700 font-normal select-none">
             —
           </span>
         )}
 
         {hasTasks && (
-          <span className="text-[9px] text-slate-500 hidden sm:inline font-mono">
-            {totalTasks} {totalTasks === 1 ? 'task' : 'tasks'}
+          <span className="text-[9px] text-slate-400 hidden sm:inline font-mono">
+            {totalTasks}t
           </span>
         )}
       </div>

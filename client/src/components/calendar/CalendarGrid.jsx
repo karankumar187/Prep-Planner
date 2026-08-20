@@ -41,89 +41,88 @@ const CalendarGrid = ({ selectedDate, onSelectDate, tasksByDate, currentMonth, s
     : 0;
 
   return (
-    <div className="bg-slate-800 border border-slate-700/80 rounded-2xl p-4 md:p-6 shadow-xl flex flex-col gap-5">
-      {/* Calendar Header with Navigation & Stats */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-700/60">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-            <CalendarIcon size={20} />
+    <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-4 shadow-xl flex flex-col gap-3.5">
+      {/* Calendar Header with Navigation & Quick Actions */}
+      <div className="flex justify-between items-center pb-2.5 border-b border-slate-700/50">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+            <CalendarIcon size={16} />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white tracking-tight">{format(currentMonth, "MMMM yyyy")}</h2>
-            <p className="text-xs text-slate-400 font-medium">Select any date to view and manage daily tasks</p>
+            <h2 className="text-lg font-bold text-white tracking-tight leading-tight">{format(currentMonth, "MMMM yyyy")}</h2>
           </div>
         </div>
 
         {/* Navigation buttons & Today shortcut */}
-        <div className="flex items-center gap-2 self-end sm:self-auto">
+        <div className="flex items-center gap-1.5">
           <button 
             onClick={goToToday}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-700/80 hover:bg-slate-700 text-slate-200 hover:text-white transition-colors border border-slate-600/50"
+            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-700/60 hover:bg-slate-700 text-slate-200 hover:text-white transition-colors border border-slate-600/40"
           >
             Today
           </button>
-          <div className="flex items-center bg-slate-900/60 border border-slate-700 rounded-lg p-0.5">
+          <div className="flex items-center bg-slate-900/60 border border-slate-700/60 rounded-lg p-0.5">
             <button 
               onClick={prevMonth} 
-              className="p-1.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-1 rounded text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
               title="Previous Month"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={14} />
             </button>
             <button 
               onClick={nextMonth} 
-              className="p-1.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-1 rounded text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
               title="Next Month"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={14} />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Month Summary Bar */}
-      <div className="grid grid-cols-3 gap-3 p-3 bg-slate-900/60 rounded-xl border border-slate-750 text-xs">
-        <div className="flex items-center gap-2.5 px-2">
-          <ListTodo size={16} className="text-indigo-400 flex-shrink-0" />
-          <div>
-            <div className="text-slate-400 text-[11px]">Monthly Tasks</div>
-            <div className="font-bold text-slate-100 text-sm">{totalMonthTasks}</div>
+      {/* Compact Month Summary Bar */}
+      <div className="grid grid-cols-3 gap-2 p-2 bg-slate-900/60 rounded-xl border border-slate-700/40 text-xs">
+        <div className="flex items-center gap-2 px-1.5">
+          <ListTodo size={14} className="text-indigo-400 flex-shrink-0" />
+          <div className="flex items-baseline gap-1.5 truncate">
+            <span className="text-slate-400 text-[11px]">Tasks:</span>
+            <span className="font-bold text-slate-100 text-xs">{totalMonthTasks}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 px-2 border-x border-slate-800">
-          <CheckCircle2 size={16} className="text-emerald-400 flex-shrink-0" />
-          <div>
-            <div className="text-slate-400 text-[11px]">Completed</div>
-            <div className="font-bold text-emerald-400 text-sm">{completedMonthTasks}</div>
+        <div className="flex items-center gap-2 px-1.5 border-x border-slate-800">
+          <CheckCircle2 size={14} className="text-emerald-400 flex-shrink-0" />
+          <div className="flex items-baseline gap-1.5 truncate">
+            <span className="text-slate-400 text-[11px]">Done:</span>
+            <span className="font-bold text-emerald-400 text-xs">{completedMonthTasks}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 px-2">
-          <TrendingUp size={16} className="text-indigo-400 flex-shrink-0" />
-          <div>
-            <div className="text-slate-400 text-[11px]">Completion Rate</div>
-            <div className="font-bold text-slate-100 text-sm">{monthCompletionRate}%</div>
+        <div className="flex items-center gap-2 px-1.5">
+          <TrendingUp size={14} className="text-indigo-400 flex-shrink-0" />
+          <div className="flex items-baseline gap-1.5 truncate">
+            <span className="text-slate-400 text-[11px]">Rate:</span>
+            <span className="font-bold text-slate-100 text-xs">{monthCompletionRate}%</span>
           </div>
         </div>
       </div>
 
-      {/* 7-column Calendar Grid */}
-      <div className="rounded-xl overflow-hidden border border-slate-700/80 shadow-inner bg-slate-900/50">
-        {/* Week Days Row */}
-        <div className="grid grid-cols-7 border-b border-slate-700/80 bg-slate-850/80">
+      {/* 7-column Calendar Grid with soft dark dividers (no harsh white outlines) */}
+      <div className="rounded-xl overflow-hidden border border-slate-700/60 shadow-inner bg-slate-900/40">
+        {/* Week Days Header Row */}
+        <div className="grid grid-cols-7 border-b border-slate-700/50 bg-slate-850">
           {weekDays.map(day => (
             <div 
               key={day} 
-              className="py-2.5 text-center text-[11px] font-bold text-slate-400 uppercase tracking-wider"
+              className="py-1.5 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider"
             >
               {day}
             </div>
           ))}
         </div>
         
-        {/* Days Matrix */}
-        <div className="grid grid-cols-7">
+        {/* Days Matrix with 1px subtle dark gap */}
+        <div className="grid grid-cols-7 gap-[1px] bg-slate-700/30">
           {days.map((day, idx) => {
             const dateStr = format(day, 'yyyy-MM-dd');
             const isToday = isSameDay(day, new Date());
