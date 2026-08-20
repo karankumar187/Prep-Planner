@@ -72,5 +72,6 @@ export const getStudyTimeAnalytics = (enrollmentId, date) => api.get(`/analytics
 
 // AI Generation
 export const generateAIMCQs = (prompt, numQuestions, timeLimit) => api.post('/ai/generate-mcq', { prompt, numQuestions, timeLimit });
+export const generateAIReading = (prompt, estimatedMinutes) => api.post('/ai/generate-reading', { prompt, estimatedMinutes });
 
 export default api;

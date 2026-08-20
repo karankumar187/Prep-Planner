@@ -69,6 +69,55 @@ const generateFallbackMCQs = (prompt, numQuestions) => {
   return questions;
 };
 
+// Fallback smart reading material generator
+const generateFallbackReading = (prompt) => {
+  const topic = prompt.trim();
+  return `# Comprehensive Guide: ${topic}
+
+## 1. Overview & Fundamentals
+${topic} is an essential core topic frequently tested in campus placements and technical interviews. Understanding its theoretical principles and practical implementation allows developers to write robust, efficient, and scalable applications.
+
+### Key Learning Objectives:
+- Master the underlying architecture of **${topic}**.
+- Learn real-world software design patterns and implementation techniques.
+- Understand common pitfalls, edge cases, and optimization strategies.
+
+---
+
+## 2. Practical Examples & Usage
+
+### Code Example:
+\`\`\`javascript
+// Practical implementation example of ${topic}
+function demonstrate${topic.replace(/[^a-zA-Z0-9]/g, '')}() {
+  console.log("Executing practical workflow for ${topic}...");
+  const data = [1, 2, 3, 4, 5];
+  const result = data.map(item => item * 2);
+  return result;
+}
+
+const output = demonstrate${topic.replace(/[^a-zA-Z0-9]/g, '')}();
+console.log("Result:", output);
+\`\`\`
+
+---
+
+## 3. Real-World Applications & Best Practices
+
+1. **System Optimization**: Always evaluate time and space complexity ($O(N)$ vs $O(N \\log N)$).
+2. **Edge Case Handling**: Validate boundary conditions, null inputs, and unexpected data formats before processing.
+3. **Clean Code**: Keep functions modular, well-documented, and decoupled.
+
+---
+
+## 4. Frequently Asked Placement Interview Questions
+
+- **Q1:** What is the primary purpose of ${topic} in production environments?
+- **Q2:** How does ${topic} compare with alternative architectural approaches?
+- **Q3:** How do you handle exceptions or memory overhead when scaling ${topic}?
+`;
+};
+
 // @route   POST /api/ai/generate-mcq
 // @desc    Generate MCQ questions using Hugging Face Router API (meta-llama/Llama-3.1-8B-Instruct)
 router.post('/generate-mcq', async (req, res) => {
@@ -139,7 +188,6 @@ JSON Schema:
     const hfData = await response.json();
     let generatedText = hfData.choices?.[0]?.message?.content || '';
 
-    // Extract JSON array from response
     let mcqs = [];
     try {
       const jsonStart = generatedText.indexOf('[');
@@ -155,7 +203,6 @@ JSON Schema:
       mcqs = generateFallbackMCQs(prompt, numQuestions);
     }
 
-    // Validate structure
     const validMCQs = mcqs.slice(0, numQuestions).map((q, idx) => ({
       question: q.question || `Question ${idx + 1} on ${prompt}`,
       options: Array.isArray(q.options) && q.options.length === 4 ? q.options : ['Option A', 'Option B', 'Option C', 'Option D'],
@@ -176,6 +223,88 @@ JSON Schema:
       title: `${req.body.prompt || 'Technical'} — MCQ Assessment`,
       estimatedMinutes: req.body.timeLimit || 10,
       mcqs: fallbackQuestions,
+      source: 'fallback'
+    });
+  }
+});
+
+// @route   POST /api/ai/generate-reading
+// @desc    Generate structured study reading material with AI (meta-llama/Llama-3.1-8B-Instruct)
+router.post('/generate-reading', async (req, res) => {
+  try {
+    const { prompt, estimatedMinutes = 20, apiKey } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({ message: 'Topic/Prompt is required' });
+    }
+
+    const hfKey = apiKey || process.env.HUGGINGFACE_API_KEY;
+
+    if (!hfKey) {
+      const fallbackText = generateFallbackReading(prompt);
+      return res.json({
+        title: `${prompt} Study Material`,
+        estimatedMinutes,
+        readingContent: fallbackText,
+        source: 'smart-fallback'
+      });
+    }
+
+    const modelName = process.env.HUGGINGFACE_MODEL || 'meta-llama/Llama-3.1-8B-Instruct';
+    const modelUrl = 'https://router.huggingface.co/v1/chat/completions';
+
+    const systemInstruction = `You are a world-class technical educator preparing placement study notes.
+Write a clear, structured Markdown reading module for students on topic: "${prompt}".
+Include:
+1. # Core Concepts & Detailed Explanation
+2. ## Code / SQL / Concrete Practical Examples with step-by-step explanations
+3. ## Real-World Industry Applications
+4. ## Key Interview Takeaways & Common Questions
+Format clearly in Markdown with code blocks and bullet points.`;
+
+    const response = await fetch(modelUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${hfKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: modelName,
+        messages: [
+          { role: 'system', content: systemInstruction },
+          { role: 'user', content: `Explain ${prompt} in detail with practical examples and interview notes.` }
+        ],
+        temperature: 0.3,
+        max_tokens: 3000
+      })
+    });
+
+    if (!response.ok) {
+      const fallbackText = generateFallbackReading(prompt);
+      return res.json({
+        title: `${prompt} Study Material`,
+        estimatedMinutes,
+        readingContent: fallbackText,
+        source: 'smart-fallback'
+      });
+    }
+
+    const hfData = await response.json();
+    let generatedContent = hfData.choices?.[0]?.message?.content || generateFallbackReading(prompt);
+
+    res.json({
+      title: `${prompt} Study Notes`,
+      estimatedMinutes,
+      readingContent: generatedContent,
+      source: 'huggingface-llama3.1'
+    });
+
+  } catch (err) {
+    console.error('AI Reading Generation Error:', err.message);
+    res.json({
+      title: `${req.body.prompt || 'Study'} Reading Notes`,
+      estimatedMinutes: req.body.estimatedMinutes || 20,
+      readingContent: generateFallbackReading(req.body.prompt || 'Technical Topic'),
       source: 'fallback'
     });
   }

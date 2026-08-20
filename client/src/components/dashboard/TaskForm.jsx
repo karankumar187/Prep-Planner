@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CATEGORIES, PRIORITIES } from '../../utils/constants';
-import { Plus, Trash2, HelpCircle, Link as LinkIcon, CheckSquare, Sparkles, Loader2 } from 'lucide-react';
-import { generateAIMCQs } from '../../utils/api';
+import { Plus, Trash2, HelpCircle, Link as LinkIcon, CheckSquare, Sparkles, Loader2, BookOpen } from 'lucide-react';
+import { generateAIMCQs, generateAIReading } from '../../utils/api';
 
 const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1, defaultTaskType = 'task' }) => {
   const [taskType, setTaskType] = useState(defaultTaskType);
@@ -9,13 +9,14 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
     title: '',
     category: CATEGORIES[0],
     link: '',
+    readingContent: '',
     dayNumber: dayNumber,
     priority: 'Medium',
     estimatedMinutes: 30,
     mcqs: []
   });
 
-  // AI Generator state
+  // AI Generator states
   const [showAIPrompt, setShowAIPrompt] = useState(false);
   const [aiTopic, setAiTopic] = useState('');
   const [aiNumQuestions, setAiNumQuestions] = useState(5);
@@ -24,11 +25,16 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
 
   useEffect(() => {
     if (initialData) {
-      setTaskType(initialData.taskType || (initialData.category === 'MCQ Assessment' || (initialData.mcqs && initialData.mcqs.length > 0) ? 'assessment' : 'task'));
+      const type = initialData.taskType || 
+        (initialData.category === 'Reading Material' || !!initialData.readingContent ? 'reading' :
+        (initialData.category === 'MCQ Assessment' || (initialData.mcqs && initialData.mcqs.length > 0) ? 'assessment' : 'task'));
+      
+      setTaskType(type);
       setFormData({
         title: initialData.title || '',
-        category: initialData.category || CATEGORIES[0],
+        category: initialData.category || (type === 'reading' ? 'Reading Material' : CATEGORIES[0]),
         link: initialData.link || '',
+        readingContent: initialData.readingContent || '',
         dayNumber: initialData.dayNumber || dayNumber,
         priority: initialData.priority || 'Medium',
         estimatedMinutes: initialData.estimatedMinutes || 30,
@@ -39,8 +45,9 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
       setTaskType(type);
       setFormData({
         title: '',
-        category: type === 'assessment' ? 'MCQ Assessment' : CATEGORIES[0],
+        category: type === 'reading' ? 'Reading Material' : (type === 'assessment' ? 'MCQ Assessment' : CATEGORIES[0]),
         link: '',
+        readingContent: '',
         dayNumber: dayNumber,
         priority: 'Medium',
         estimatedMinutes: 30,
@@ -55,7 +62,9 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
 
   const handleTypeChange = (type) => {
     setTaskType(type);
-    if (type === 'assessment' && formData.category !== 'MCQ Assessment') {
+    if (type === 'reading' && formData.category !== 'Reading Material') {
+      setFormData({ ...formData, category: 'Reading Material' });
+    } else if (type === 'assessment' && formData.category !== 'MCQ Assessment') {
       setFormData({ ...formData, category: 'MCQ Assessment' });
     }
   };
@@ -93,7 +102,7 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
     setFormData({ ...formData, mcqs: updated });
   };
 
-  const handleGenerateAI = async (e) => {
+  const handleGenerateAIMCQs = async (e) => {
     e.preventDefault();
     if (!aiTopic.trim()) return;
 
@@ -119,6 +128,32 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
     }
   };
 
+  const handleGenerateAIReading = async (e) => {
+    e.preventDefault();
+    if (!aiTopic.trim()) return;
+
+    try {
+      setIsGenerating(true);
+      setAiNotice('');
+      const res = await generateAIReading(aiTopic, formData.estimatedMinutes);
+
+      setFormData(prev => ({
+        ...prev,
+        title: res.data.title || `${aiTopic} Study Material`,
+        category: 'Reading Material',
+        readingContent: res.data.readingContent || ''
+      }));
+
+      setIsGenerating(false);
+      setShowAIPrompt(false);
+      setAiNotice(`✨ AI generated study material for "${aiTopic}"!`);
+    } catch (err) {
+      console.error(err);
+      setIsGenerating(false);
+      setAiNotice('Failed to generate reading material. Please try again.');
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit({
@@ -131,17 +166,17 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-slate-800 rounded-2xl p-6 w-full max-w-2xl border border-slate-700 max-h-[90vh] flex flex-col shadow-2xl">
         {/* Header with Type Selector */}
-        <div className="flex justify-between items-center mb-5 pb-3 border-b border-slate-700">
+        <div className="flex justify-between items-center mb-5 pb-3 border-b border-slate-700 flex-wrap gap-2">
           <h2 className="text-xl font-bold text-white">
-            {initialData ? 'Edit Item' : taskType === 'assessment' ? 'Add MCQ Assessment' : 'Add Study Task'}
+            {initialData ? 'Edit Item' : taskType === 'reading' ? 'Add Reading Material' : taskType === 'assessment' ? 'Add MCQ Assessment' : 'Add Study Task'}
           </h2>
 
           {/* Mode Switcher Buttons */}
-          <div className="bg-slate-900 p-1 rounded-xl flex border border-slate-700">
+          <div className="bg-slate-900 p-1 rounded-xl flex border border-slate-700 gap-1 overflow-x-auto">
             <button
               type="button"
               onClick={() => handleTypeChange('task')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                 taskType === 'task' ? 'bg-indigo-500 text-white shadow' : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -150,8 +185,18 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
             </button>
             <button
               type="button"
+              onClick={() => handleTypeChange('reading')}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                taskType === 'reading' ? 'bg-purple-500 text-white shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <BookOpen size={14} />
+              <span>Reading Material</span>
+            </button>
+            <button
+              type="button"
               onClick={() => handleTypeChange('assessment')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                 taskType === 'assessment' ? 'bg-rose-500 text-white shadow' : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -163,20 +208,24 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
         
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-4 pr-1">
           {aiNotice && (
-            <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 font-medium">
-              <Sparkles size={16} className="text-rose-400 flex-shrink-0" />
+            <div className="bg-purple-500/10 border border-purple-500/30 text-purple-300 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 font-medium">
+              <Sparkles size={16} className="text-purple-400 flex-shrink-0" />
               <span>{aiNotice}</span>
             </div>
           )}
 
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">
-              {taskType === 'assessment' ? 'Assessment Title' : 'Task Title'}
+              {taskType === 'reading' ? 'Reading Module Title' : taskType === 'assessment' ? 'Assessment Title' : 'Task Title'}
             </label>
             <input 
               required
               type="text" 
-              placeholder={taskType === 'assessment' ? "e.g. SQL JOINs Quiz Assessment" : "e.g. Solve 2 LeetCode Array Problems"}
+              placeholder={
+                taskType === 'reading' ? "e.g. DBMS Normalization (1NF to BCNF) Study Notes" :
+                taskType === 'assessment' ? "e.g. SQL JOINs Quiz Assessment" : 
+                "e.g. Solve 2 LeetCode Array Problems"
+              }
               className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
               value={formData.title}
               onChange={(e) => setFormData({...formData, title: e.target.value})}
@@ -233,7 +282,9 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Time Limit / Est. Mins</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1">
+                {taskType === 'reading' ? 'Estimated Reading Mins' : 'Time Limit / Est. Mins'}
+              </label>
               <input 
                 required
                 type="number" 
@@ -244,6 +295,79 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
               />
             </div>
           </div>
+
+          {/* Reading Material Section */}
+          {taskType === 'reading' && (
+            <div className="mt-6 pt-4 border-t border-slate-700 space-y-3">
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <div className="flex items-center gap-2 text-white font-bold">
+                  <BookOpen size={18} className="text-purple-400" />
+                  <span>Reading Material Content</span>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setShowAIPrompt(!showAIPrompt)}
+                  className="flex items-center gap-1.5 text-xs bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white px-3 py-1.5 rounded-lg font-bold shadow transition-all"
+                >
+                  <Sparkles size={14} />
+                  <span>Auto-Generate Notes with AI</span>
+                </button>
+              </div>
+
+              {/* AI Reading Prompt Box */}
+              {showAIPrompt && (
+                <div className="bg-slate-900/90 border border-purple-500/40 p-4 rounded-xl space-y-3 shadow-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+                      <Sparkles size={14} className="text-purple-400" />
+                      <span>Hugging Face AI Reading Generator</span>
+                    </span>
+                    <button type="button" onClick={() => setShowAIPrompt(false)} className="text-slate-400 hover:text-white text-xs">Close</button>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-slate-300 mb-1">Topic / Concepts to Explain</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. DBMS Normalization (1NF to BCNF) with SQL Examples, React useEffect Cleanups"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-purple-500"
+                      value={aiTopic}
+                      onChange={e => setAiTopic(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex justify-end pt-1">
+                    <button 
+                      disabled={isGenerating || !aiTopic.trim()}
+                      onClick={handleGenerateAIReading}
+                      className="flex items-center gap-1.5 bg-purple-500 hover:bg-purple-600 disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors shadow"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />
+                          <span>Generating Study Notes...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={14} />
+                          <span>Generate Notes</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <textarea
+                rows={8}
+                placeholder="Enter or paste study notes, concepts, and code examples here (Markdown supported)..."
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white text-xs md:text-sm font-mono leading-relaxed focus:outline-none focus:border-purple-500"
+                value={formData.readingContent}
+                onChange={e => setFormData({ ...formData, readingContent: e.target.value })}
+              />
+              <p className="text-[11px] text-slate-400">* Supports Markdown formatting: # Headings, **bold**, - lists, and ```code``` blocks.</p>
+            </div>
+          )}
 
           {/* MCQ Question Builder & AI Generator Section */}
           {(taskType === 'assessment' || formData.mcqs.length > 0) && (
@@ -319,7 +443,7 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
                   <div className="flex justify-end pt-1">
                     <button 
                       disabled={isGenerating || !aiTopic.trim()}
-                      onClick={handleGenerateAI}
+                      onClick={handleGenerateAIMCQs}
                       className="flex items-center gap-1.5 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors shadow"
                     >
                       {isGenerating ? (
@@ -405,7 +529,7 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
               Cancel
             </button>
             <button type="submit" className="px-5 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white font-medium transition-colors">
-              Save {taskType === 'assessment' ? 'Assessment' : 'Task'}
+              Save {taskType === 'reading' ? 'Reading Material' : taskType === 'assessment' ? 'Assessment' : 'Task'}
             </button>
           </div>
         </form>

@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
-import { Pencil, Trash2, Clock, Check, HelpCircle, Trophy, ExternalLink } from 'lucide-react';
+import { Pencil, Trash2, Clock, Check, HelpCircle, Trophy, ExternalLink, BookOpen } from 'lucide-react';
 import CategoryPill from '../shared/CategoryPill';
 import { PRIORITY_COLORS } from '../../utils/constants';
 import MCQRunnerModal from './MCQRunnerModal';
+import ReadingMaterialModal from './ReadingMaterialModal';
 
 const TaskCard = ({ task, enrollmentId, onToggleComplete, onEdit, onDelete, onMCQSubmitted }) => {
   const [actualTime, setActualTime] = useState('');
   const [showTimeInput, setShowTimeInput] = useState(false);
   const [isMCQOpen, setIsMCQOpen] = useState(false);
+  const [isReadingOpen, setIsReadingOpen] = useState(false);
 
   const isCompleted = task.completed;
   const pColor = PRIORITY_COLORS[task.scheduleTask.priority] || PRIORITY_COLORS['Medium'];
   const hasMCQs = task.scheduleTask.mcqs && task.scheduleTask.mcqs.length > 0;
+  const hasReading = task.scheduleTask.taskType === 'reading' || !!task.scheduleTask.readingContent;
   const mcqScore = task.mcqScore;
   const resourceLink = task.scheduleTask.link;
 
@@ -71,7 +74,7 @@ const TaskCard = ({ task, enrollmentId, onToggleComplete, onEdit, onDelete, onMC
               )}
             </div>
 
-            {/* Sub-info Row: Time & Quiz */}
+            {/* Sub-info Row: Time, Reading, & Quiz */}
             <div className="flex items-center gap-3 text-xs text-slate-400 mt-1 flex-wrap">
               <div className="flex items-center gap-1">
                 <Clock size={12} />
@@ -83,6 +86,17 @@ const TaskCard = ({ task, enrollmentId, onToggleComplete, onEdit, onDelete, onMC
                   <Clock size={12} />
                   <span>{task.actualMinutes}m actual</span>
                 </div>
+              )}
+
+              {/* Reading Material Button */}
+              {hasReading && (
+                <button
+                  onClick={() => setIsReadingOpen(true)}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30 hover:bg-purple-500/25 transition-colors"
+                >
+                  <BookOpen size={11} className="text-purple-400" />
+                  <span>Read Study Material</span>
+                </button>
               )}
 
               {/* MCQ Assessment Quiz Button */}
@@ -157,6 +171,14 @@ const TaskCard = ({ task, enrollmentId, onToggleComplete, onEdit, onDelete, onMC
           setIsMCQOpen(false);
           if (onMCQSubmitted) onMCQSubmitted();
         }}
+      />
+
+      <ReadingMaterialModal
+        isOpen={isReadingOpen}
+        onClose={() => setIsReadingOpen(false)}
+        task={task}
+        enrollmentId={enrollmentId}
+        onToggleComplete={onToggleComplete}
       />
     </>
   );
