@@ -3,14 +3,21 @@ const router = express.Router();
 
 // Robust Fisher-Yates Option Shuffler - Guarantees uniform 25% distribution across A, B, C, D
 const shuffleOptionsAndDistribute = (mcq) => {
-  if (!mcq || !Array.isArray(mcq.options) || mcq.options.length !== 4) return mcq;
+  if (!mcq) return null;
+
+  const qText = mcq.question || mcq.q || '';
+  const rawOpts = mcq.options || mcq.opts || [];
+
+  if (!Array.isArray(rawOpts) || rawOpts.length < 4) return null;
 
   const validCorrectIdx = (typeof mcq.correctOption === 'number' && mcq.correctOption >= 0 && mcq.correctOption < 4) 
     ? mcq.correctOption 
+    : (typeof mcq.correct === 'number' && mcq.correct >= 0 && mcq.correct < 4)
+    ? mcq.correct
     : 0;
 
-  const correctText = mcq.options[validCorrectIdx];
-  const shuffled = [...mcq.options];
+  const correctText = rawOpts[validCorrectIdx] || rawOpts[0];
+  const shuffled = [...rawOpts.slice(0, 4)];
 
   // Fisher-Yates Shuffle
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -21,7 +28,7 @@ const shuffleOptionsAndDistribute = (mcq) => {
   const newCorrectIndex = shuffled.indexOf(correctText);
 
   return {
-    question: String(mcq.question || '').trim(),
+    question: String(qText).trim(),
     options: shuffled.map(opt => String(opt || '').trim()),
     correctOption: newCorrectIndex !== -1 ? newCorrectIndex : Math.floor(Math.random() * 4)
   };
@@ -33,12 +40,14 @@ const deduplicateMCQs = (mcqs) => {
   const uniqueList = [];
 
   for (const item of mcqs) {
-    if (!item || !item.question || !Array.isArray(item.options) || item.options.length < 4) continue;
+    if (!item) continue;
+    const shuffled = shuffleOptionsAndDistribute(item);
+    if (!shuffled || !shuffled.question || !Array.isArray(shuffled.options) || shuffled.options.length !== 4) continue;
     
-    const normalizedStem = item.question.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 45);
+    const normalizedStem = shuffled.question.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 45);
     if (!seenStems.has(normalizedStem)) {
       seenStems.add(normalizedStem);
-      uniqueList.push(shuffleOptionsAndDistribute(item));
+      uniqueList.push(shuffled);
     }
   }
 
@@ -50,204 +59,204 @@ const generateDiverseFallbackMCQs = (prompt, numQuestions) => {
   const topic = prompt.trim();
   const bank = [
     {
-      q: `What is the primary architectural purpose of ${topic} in modern software engineering?`,
-      opts: [
+      question: `What is the primary architectural purpose of ${topic} in modern software engineering?`,
+      options: [
         `To decouple components, optimize scalability, and maintain predictable system behavior`,
         `To enforce linear sequential processing without asynchronous capabilities`,
         `To bypass data validation rules for faster input execution`,
         `To convert runtime errors into unhandled silent warnings`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `When analyzing computational complexity related to ${topic}, which characteristic is typical?`,
-      opts: [
+      question: `When analyzing computational complexity related to ${topic}, which characteristic is typical?`,
+      options: [
         `Optimal implementations target logarithmic O(log N) or linearithmic O(N log N) bounds`,
         `All operations unconditionally require exponential O(2^N) runtime`,
         `Memory allocation is strictly constant regardless of input scale`,
         `Processing speed decreases linearly with CPU clock cycles`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `Which design pattern or methodology is most effective when implementing ${topic}?`,
-      opts: [
+      question: `Which design pattern or methodology is most effective when implementing ${topic}?`,
+      options: [
         `Modular encapsulation with clear interface separation and dependency injection`,
         `Direct global state mutation across independent threads`,
         `Unchecked recursive loops with dynamic termination criteria`,
         `Tight coupling of presentation logic with data persistence layers`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `What is the standard behavior when handling edge cases or boundary conditions in ${topic}?`,
-      opts: [
+      question: `What is the standard behavior when handling edge cases or boundary conditions in ${topic}?`,
+      options: [
         `Gracefully capturing exceptions and returning sanitized fallback responses`,
         `Terminating the parent thread without freeing allocated resources`,
         `Ignoring invalid inputs and writing corrupted payloads to disk`,
         `Reinitializing the entire database connection pool unconditionally`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `In technical placement assessments, what is a key pitfall candidates make regarding ${topic}?`,
-      opts: [
+      question: `In technical placement assessments, what is a key pitfall candidates make regarding ${topic}?`,
+      options: [
         `Overlooking space complexity trade-offs and memory leak risks in long-running processes`,
         `Writing modular helper functions instead of monolithic scripts`,
         `Using standardized data structures from the language standard library`,
         `Adding comprehensive input validation and type checking`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `How does concurrency or multi-threading impact ${topic}?`,
-      opts: [
+      question: `How does concurrency or multi-threading impact ${topic}?`,
+      options: [
         `Requires synchronization primitives or atomic operations to avoid race conditions`,
         `Automatically prevents deadlocks without locks or mutexes`,
         `Disables all asynchronous I/O operations entirely`,
         `Forces memory pages to be duplicated across all core caches`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `Which of the following metrics is most crucial when benchmarking ${topic}?`,
-      opts: [
+      question: `Which of the following metrics is most crucial when benchmarking ${topic}?`,
+      options: [
         `Throughput (QPS/TPS), latency percentiles (p95/p99), and resource utilization`,
         `Source code line count and file size on disk`,
         `Number of comments written per function definition`,
         `Alphabetical ordering of exported variable identifiers`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `What role does caching or memoization play in optimizing ${topic}?`,
-      opts: [
+      question: `What role does caching or memoization play in optimizing ${topic}?`,
+      options: [
         `Reduces redundant calculations and roundtrip database queries for expensive operations`,
         `Increases network packet size to accelerate data transmission`,
         `Eliminates the requirement for persistent database storage`,
         `Bypasses operating system security permissions dynamically`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `When refactoring legacy implementations of ${topic}, what is the recommended practice?`,
-      opts: [
+      question: `When refactoring legacy implementations of ${topic}, what is the recommended practice?`,
+      options: [
         `Writing regression unit tests before restructuring core algorithm logic`,
         `Deleting existing test suites to prevent build failures during migration`,
         `Merging separate modules into a single shared execution block`,
         `Hardcoding configuration constants directly into production binaries`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `What security consideration must be addressed when exposing APIs related to ${topic}?`,
-      opts: [
+      question: `What security consideration must be addressed when exposing APIs related to ${topic}?`,
+      options: [
         `Sanitizing user inputs to mitigate injection attacks and enforcing rate limiting`,
         `Disabling CORS policies for all external cross-origin domains`,
         `Exposing detailed internal stack traces in public error responses`,
         `Using unencrypted HTTP protocols to reduce encryption overhead`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `How should database transactions interacting with ${topic} be handled?`,
-      opts: [
+      question: `How should database transactions interacting with ${topic} be handled?`,
+      options: [
         `Adhering to ACID properties and using appropriate isolation levels`,
         `Committing partial updates without rollback mechanisms`,
         `Executing schema migrations directly within user request lifecycles`,
         `Disabling foreign key constraints to speed up batch inserts`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `What is the impact of excessive nesting and high cyclomatic complexity in ${topic}?`,
-      opts: [
+      question: `What is the impact of excessive nesting and high cyclomatic complexity in ${topic}?`,
+      options: [
         `Degrades code readability, increases bug probability, and complicates unit testing`,
         `Improves JIT compiler optimization across all architectures`,
         `Reduces the physical RAM required during application execution`,
         `Guarantees deterministic execution across distributed nodes`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `In terms of fault tolerance, what mechanism best ensures high availability for ${topic}?`,
-      opts: [
+      question: `In terms of fault tolerance, what mechanism best ensures high availability for ${topic}?`,
+      options: [
         `Automated health checks, circuit breakers, and graceful degradation strategies`,
         `Restarting the entire operating system on every caught exception`,
         `Storing all critical state in ephemeral single-node local memory`,
         `Ignoring network timeout thresholds during peak traffic hours`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `Which data structure is typically most suitable for efficient lookups in ${topic}?`,
-      opts: [
+      question: `Which data structure is typically most suitable for efficient lookups in ${topic}?`,
+      options: [
         `Hash Map / Hash Table providing average O(1) time complexity`,
         `Singly Linked List requiring O(N) linear search for all operations`,
         `Unsorted Array requiring full scan for every query`,
         `Fixed-size queue with FIFO eviction policies`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `What is the primary trade-off when optimizing ${topic} for space over time?`,
-      opts: [
+      question: `What is the primary trade-off when optimizing ${topic} for space over time?`,
+      options: [
         `Memory consumption is minimized at the cost of additional compute iterations`,
         `CPU cycles are decreased while RAM footprint expands indefinitely`,
         `Network bandwidth is multiplied by redundant packet retransmissions`,
         `Database indices are duplicated across all read replicas`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `How do modern frameworks manage lifecycle events related to ${topic}?`,
-      opts: [
+      question: `How do modern frameworks manage lifecycle events related to ${topic}?`,
+      options: [
         `Through declarative hooks, event loops, and cleanup callbacks`,
         `By creating unbounded background worker threads for every function call`,
         `By forcing developers to manually deallocate heap memory`,
         `By halting application execution until all pending promises reject`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `What does idempotency mean in the context of operations for ${topic}?`,
-      opts: [
+      question: `What does idempotency mean in the context of operations for ${topic}?`,
+      options: [
         `Executing the operation multiple times produces the same result as a single execution`,
         `The operation can only be triggered once in the entire application lifetime`,
         `The function executes in zero milliseconds without side effects`,
         `The operation requires multiple concurrent threads to complete successfully`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `Which approach is best for debugging subtle state synchronization issues in ${topic}?`,
-      opts: [
+      question: `Which approach is best for debugging subtle state synchronization issues in ${topic}?`,
+      options: [
         `Structured logging, distributed tracing, and reproducible test cases`,
         `Adding arbitrary sleep delays throughout the codebase`,
         `Increasing database connection limits without investigating queries`,
         `Suppressing console error output in staging environments`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `When designing scalable microservices around ${topic}, how should data communication occur?`,
-      opts: [
+      question: `When designing scalable microservices around ${topic}, how should data communication occur?`,
+      options: [
         `Using asynchronous message queues or standardized REST/gRPC interfaces with versioning`,
         `Sharing a single monolithic SQL table directly between all services`,
         `Relying on hardcoded local IP addresses without service discovery`,
         `Transmitting uncompressed raw memory dumps across network sockets`
       ],
-      correct: 0
+      correctOption: 0
     },
     {
-      q: `What distinguishes a clean production-grade implementation of ${topic} from a prototype?`,
-      opts: [
+      question: `What distinguishes a clean production-grade implementation of ${topic} from a prototype?`,
+      options: [
         `Robust error boundaries, automated CI/CD tests, monitoring, and thorough documentation`,
         `Minimizing the number of files by putting all code in a single file`,
         `Avoiding dependency managers and hand-copying library files`,
         `Skipping input validation to maximize raw execution throughput`
       ],
-      correct: 0
+      correctOption: 0
     }
   ];
 
@@ -262,14 +271,14 @@ const generateDiverseFallbackMCQs = (prompt, numQuestions) => {
   while (selected.length < numQuestions) {
     const base = shuffledBank[idx % shuffledBank.length];
     selected.push(shuffleOptionsAndDistribute({
-      q: `[Advanced Analysis] ${base.q}`,
-      opts: base.opts,
-      correct: base.correct
+      question: `[Advanced Analysis] ${base.question}`,
+      options: base.options,
+      correctOption: base.correctOption
     }));
     idx++;
   }
 
-  return selected;
+  return selected.filter(Boolean);
 };
 
 // Fallback smart reading material generator
@@ -547,7 +556,7 @@ router.post('/generate-mcq', async (req, res) => {
     let allGeneratedMCQs = [];
     let providerUsed = 'none';
 
-    // 1. Try Gemini API first if configured (Super fast, free 15 RPM)
+    // 1. Try Gemini API first if configured
     if (geminiKey && allGeneratedMCQs.length < count) {
       try {
         if (count > 10) {
@@ -566,7 +575,7 @@ router.post('/generate-mcq', async (req, res) => {
       }
     }
 
-    // 2. Try Groq API if configured (500 tokens/sec)
+    // 2. Try Groq API if configured
     if (groqKey && allGeneratedMCQs.length < count) {
       try {
         if (count > 10) {
@@ -630,9 +639,9 @@ router.post('/generate-mcq', async (req, res) => {
     console.log(`🔀 [AI-MCQ] Deduplicating & applying Fisher-Yates option shuffler across ${allGeneratedMCQs.length} questions...`);
     let processedMCQs = deduplicateMCQs(allGeneratedMCQs);
 
-    // If all providers were exhausted or returned fewer items, top up from diverse curated question bank
+    // If all providers failed or returned fewer questions, top up with diverse question bank
     if (processedMCQs.length < count) {
-      console.log(`ℹ️ [AI-MCQ] Topping up ${count - processedMCQs.length} questions to reach requested count of ${count}...`);
+      console.log(`ℹ️ [AI-MCQ] Topping up ${count - processedMCQs.length} questions from curated question bank...`);
       const topUp = generateDiverseFallbackMCQs(prompt, count - processedMCQs.length);
       processedMCQs = [...processedMCQs, ...topUp];
       if (providerUsed === 'none') providerUsed = 'smart-placement-bank';

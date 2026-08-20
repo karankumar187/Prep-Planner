@@ -121,16 +121,22 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
       setAiNotice('');
       const res = await generateAIMCQs(aiTopic, aiNumQuestions, formData.estimatedMinutes);
 
+      const safeMCQs = (res.data.mcqs || []).map(q => ({
+        question: q.question || q.q || '',
+        options: Array.isArray(q.options) && q.options.length >= 4 ? q.options : Array.isArray(q.opts) && q.opts.length >= 4 ? q.opts : ['Option A', 'Option B', 'Option C', 'Option D'],
+        correctOption: typeof q.correctOption === 'number' ? q.correctOption : typeof q.correct === 'number' ? q.correct : 0
+      }));
+
       setFormData(prev => ({
         ...prev,
         title: res.data.title || `${aiTopic} — MCQ Assessment`,
         category: prev.category && CATEGORIES.includes(prev.category) ? prev.category : 'Technical',
-        mcqs: res.data.mcqs || []
+        mcqs: safeMCQs
       }));
 
       setIsGenerating(false);
       setShowAIPrompt(false);
-      setAiNotice(`✨ AI generated ${res.data.mcqs?.length || 0} unique questions on "${aiTopic}"!`);
+      setAiNotice(`✨ Generated ${safeMCQs.length} questions on "${aiTopic}"!`);
     } catch (err) {
       console.error(err);
       setIsGenerating(false);
@@ -529,7 +535,7 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
                       />
 
                       <div className="grid grid-cols-2 gap-2 text-sm">
-                        {q.options.map((opt, optIdx) => (
+                        {(q.options || ['', '', '', '']).map((opt, optIdx) => (
                           <div key={optIdx} className="flex items-center gap-2 bg-slate-800 p-2 rounded-lg border border-slate-700">
                             <input 
                               type="radio" 
