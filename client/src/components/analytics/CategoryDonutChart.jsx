@@ -3,7 +3,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { CATEGORY_COLORS } from '../../utils/constants';
 
 const CategoryDonutChart = ({ data }) => {
-  const chartData = data?.filter(d => d.total > 0) || [];
+  const invalidCategories = new Set(['Reading Material', 'MCQ Assessment']);
+  const chartData = data?.filter(d => d.total > 0 && !invalidCategories.has(d.category)) || [];
   
   if (chartData.length === 0) {
     return <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 h-80 flex items-center justify-center text-slate-400">No category data</div>;

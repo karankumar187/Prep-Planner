@@ -142,16 +142,21 @@ router.get('/:enrollmentId/categories', async (req, res) => {
       }).select('scheduleTaskId').lean()
     ]);
 
+    const validCategories = new Set([
+      'DSA', 'SQL', 'DBMS', 'OOP', 'CN', 'OS', 'Java', 'Frontend', 'Technical', 'Aptitude', 'Communication', 'Interview', 'Mock Test'
+    ]);
+
     const completedTaskIds = new Set(progress.map(p => p.scheduleTaskId.toString()));
     const categoryStats = {};
 
     tasks.forEach(task => {
-      if (!categoryStats[task.category]) {
-        categoryStats[task.category] = { total: 0, completed: 0 };
+      const cat = validCategories.has(task.category) ? task.category : 'Technical';
+      if (!categoryStats[cat]) {
+        categoryStats[cat] = { total: 0, completed: 0 };
       }
-      categoryStats[task.category].total++;
+      categoryStats[cat].total++;
       if (completedTaskIds.has(task._id.toString())) {
-        categoryStats[task.category].completed++;
+        categoryStats[cat].completed++;
       }
     });
 

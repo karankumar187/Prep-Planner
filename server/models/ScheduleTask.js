@@ -11,7 +11,8 @@ const scheduleTaskSchema = new mongoose.Schema({
   title: { type: String, required: true },
   category: { 
     type: String, 
-    enum: ['DSA', 'SQL', 'DBMS', 'OOP', 'CN', 'OS', 'Java', 'Frontend', 'Technical', 'Aptitude', 'Communication', 'Interview', 'Mock Test', 'MCQ Assessment', 'Reading Material'], 
+    enum: ['DSA', 'SQL', 'DBMS', 'OOP', 'CN', 'OS', 'Java', 'Frontend', 'Technical', 'Aptitude', 'Communication', 'Interview', 'Mock Test'], 
+    default: 'Technical',
     required: true 
   },
   taskType: { type: String, enum: ['task', 'assessment', 'reading'], default: 'task' },

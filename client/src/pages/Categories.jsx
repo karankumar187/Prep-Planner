@@ -16,12 +16,15 @@ const Categories = () => {
 
   if (!selectedEnrollment) return <div className="text-white">Please select a schedule.</div>;
 
+  const invalidCategories = new Set(['Reading Material', 'MCQ Assessment']);
+  const displayData = data.filter(cat => !invalidCategories.has(cat.category));
+
   return (
     <div>
       <h2 className="text-2xl font-bold text-white mb-6">Categories</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {data.map(cat => (
+        {displayData.map(cat => (
           <div key={cat.category} className="bg-slate-800 border border-slate-700 rounded-xl p-5">
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-3">
