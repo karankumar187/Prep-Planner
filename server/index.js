@@ -57,5 +57,11 @@ if (process.env.NODE_ENV === 'production' && require('fs').existsSync(path.join(
   });
 }
 
-const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Only listen on a port if not running on Vercel Serverless
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  const PORT = process.env.PORT || 5001;
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+// Export for Vercel Serverless Functions
+module.exports = app;
