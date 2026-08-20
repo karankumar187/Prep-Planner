@@ -39,7 +39,7 @@ const Calendar = () => {
 
   const fetchMonthData = async () => {
     try {
-      const res = await getProgress(selectedEnrollment._id);
+      const res = await getProgress(selectedEnrollment._id, 'all');
       const grouped = {};
       const start = new Date(selectedEnrollment.startDate);
       start.setHours(0, 0, 0, 0);
