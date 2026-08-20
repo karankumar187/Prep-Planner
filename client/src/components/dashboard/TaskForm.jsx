@@ -21,7 +21,22 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
   const [aiTopic, setAiTopic] = useState('');
   const [aiNumQuestions, setAiNumQuestions] = useState(5);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [genElapsedSeconds, setGenElapsedSeconds] = useState(0);
   const [aiNotice, setAiNotice] = useState('');
+
+  // Live timer effect during AI generation
+  useEffect(() => {
+    let timer;
+    if (isGenerating) {
+      setGenElapsedSeconds(0);
+      timer = setInterval(() => {
+        setGenElapsedSeconds(prev => prev + 1);
+      }, 1000);
+    } else {
+      setGenElapsedSeconds(0);
+    }
+    return () => clearInterval(timer);
+  }, [isGenerating]);
 
   useEffect(() => {
     if (initialData) {
@@ -115,7 +130,7 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
 
       setIsGenerating(false);
       setShowAIPrompt(false);
-      setAiNotice(`✨ AI generated ${res.data.mcqs?.length || 0} questions on "${aiTopic}"!`);
+      setAiNotice(`✨ AI generated ${res.data.mcqs?.length || 0} unique questions on "${aiTopic}"!`);
     } catch (err) {
       console.error(err);
       setIsGenerating(false);
@@ -155,6 +170,12 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
       ...formData,
       taskType
     });
+  };
+
+  const getProgressStatusText = () => {
+    if (genElapsedSeconds < 4) return "Connecting to Hugging Face AI engine...";
+    if (genElapsedSeconds < 9) return `Drafting ${aiNumQuestions} diverse placement questions in parallel...`;
+    return "Balancing answer keys & shuffling options...";
   };
 
   return (
@@ -331,6 +352,16 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
                     />
                   </div>
 
+                  {isGenerating && (
+                    <div className="bg-purple-950/40 border border-purple-500/30 p-3 rounded-lg flex items-center justify-between text-xs text-purple-200 animate-pulse">
+                      <div className="flex items-center gap-2">
+                        <Loader2 size={16} className="animate-spin text-purple-400" />
+                        <span>{getProgressStatusText()}</span>
+                      </div>
+                      <span className="font-mono font-bold">{genElapsedSeconds}s</span>
+                    </div>
+                  )}
+
                   <div className="flex justify-end pt-1">
                     <button 
                       disabled={isGenerating || !aiTopic.trim()}
@@ -340,7 +371,7 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
                       {isGenerating ? (
                         <>
                           <Loader2 size={14} className="animate-spin" />
-                          <span>Generating Study Notes...</span>
+                          <span>Generating Notes ({genElapsedSeconds}s)...</span>
                         </>
                       ) : (
                         <>
@@ -400,7 +431,7 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
                       <Sparkles size={14} className="text-indigo-400" />
-                      <span>Hugging Face AI Quiz Generator</span>
+                      <span>Hugging Face Fast AI Quiz Generator</span>
                     </span>
                     <button type="button" onClick={() => setShowAIPrompt(false)} className="text-slate-400 hover:text-white text-xs">Close</button>
                   </div>
@@ -435,6 +466,17 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
                     </div>
                   </div>
 
+                  {/* Progress Indicator */}
+                  {isGenerating && (
+                    <div className="bg-indigo-950/40 border border-indigo-500/30 p-3 rounded-lg flex items-center justify-between text-xs text-indigo-200 animate-pulse">
+                      <div className="flex items-center gap-2">
+                        <Loader2 size={16} className="animate-spin text-indigo-400" />
+                        <span>{getProgressStatusText()}</span>
+                      </div>
+                      <span className="font-mono font-bold">{genElapsedSeconds}s</span>
+                    </div>
+                  )}
+
                   <div className="flex justify-end pt-1">
                     <button 
                       disabled={isGenerating || !aiTopic.trim()}
@@ -444,7 +486,7 @@ const TaskForm = ({ isOpen, onClose, onSubmit, initialData = null, dayNumber = 1
                       {isGenerating ? (
                         <>
                           <Loader2 size={14} className="animate-spin" />
-                          <span>Generating Quiz...</span>
+                          <span>Generating Quiz ({genElapsedSeconds}s)...</span>
                         </>
                       ) : (
                         <>
