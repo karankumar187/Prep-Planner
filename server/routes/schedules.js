@@ -49,14 +49,43 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Helper to attach followers to schedules
+const attachFollowers = async (schedules) => {
+  if (!schedules || schedules.length === 0) return [];
+  const scheduleIds = schedules.map(s => s._id);
+  const enrollments = await Enrollment.find({ scheduleId: { $in: scheduleIds }, isActive: true })
+    .populate('userId', 'name email')
+    .lean();
+
+  const followersMap = {};
+  enrollments.forEach(e => {
+    if (e.userId) {
+      const sId = e.scheduleId.toString();
+      if (!followersMap[sId]) followersMap[sId] = [];
+      followersMap[sId].push({
+        _id: e.userId._id,
+        name: e.userId.name,
+        email: e.userId.email
+      });
+    }
+  });
+
+  return schedules.map(s => ({
+    ...s,
+    followers: followersMap[s._id.toString()] || []
+  }));
+};
+
 // @route   GET /api/schedules/explore
 // @desc    Get public schedules
 router.get('/explore', async (req, res) => {
   try {
     const schedules = await Schedule.find({ isPublic: true })
-      .populate('creatorId', 'name')
-      .sort({ followerCount: -1 });
-    res.json(schedules);
+      .populate('creatorId', 'name email')
+      .sort({ followerCount: -1 })
+      .lean();
+    const schedulesWithFollowers = await attachFollowers(schedules);
+    res.json(schedulesWithFollowers);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -67,8 +96,11 @@ router.get('/explore', async (req, res) => {
 // @desc    Get my created schedules
 router.get('/my', async (req, res) => {
   try {
-    const schedules = await Schedule.find({ creatorId: req.user.userId });
-    res.json(schedules);
+    const schedules = await Schedule.find({ creatorId: req.user.userId })
+      .populate('creatorId', 'name email')
+      .lean();
+    const schedulesWithFollowers = await attachFollowers(schedules);
+    res.json(schedulesWithFollowers);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -79,11 +111,18 @@ router.get('/my', async (req, res) => {
 // @desc    Get single schedule with tasks
 router.get('/:id', async (req, res) => {
   try {
-    const schedule = await Schedule.findById(req.params.id).populate('creatorId', 'name');
+    const schedule = await Schedule.findById(req.params.id).populate('creatorId', 'name email').lean();
     if (!schedule) {
       return res.status(404).json({ message: 'Schedule not found' });
     }
-    const tasks = await ScheduleTask.find({ scheduleId: req.params.id }).sort({ dayNumber: 1 });
+    const [tasks, enrollments] = await Promise.all([
+      ScheduleTask.find({ scheduleId: req.params.id }).sort({ dayNumber: 1 }).lean(),
+      Enrollment.find({ scheduleId: req.params.id, isActive: true }).populate('userId', 'name email').lean()
+    ]);
+    schedule.followers = enrollments
+      .filter(e => e.userId)
+      .map(e => ({ _id: e.userId._id, name: e.userId.name, email: e.userId.email }));
+
     res.json({ schedule, tasks });
   } catch (err) {
     console.error(err.message);

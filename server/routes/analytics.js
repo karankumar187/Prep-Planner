@@ -143,7 +143,7 @@ router.get('/:enrollmentId/categories', async (req, res) => {
     ]);
 
     const validCategories = new Set([
-      'DSA', 'SQL', 'DBMS', 'OOP', 'CN', 'OS', 'Java', 'Frontend', 'Technical', 'Aptitude', 'Communication', 'Interview', 'Mock Test'
+      'DSA', 'SQL', 'DBMS', 'OOP', 'CN', 'OS', 'Java', 'C++', 'Frontend', 'Technical', 'Aptitude', 'Communication', 'Interview', 'Mock Test'
     ]);
 
     const completedTaskIds = new Set(progress.map(p => p.scheduleTaskId.toString()));

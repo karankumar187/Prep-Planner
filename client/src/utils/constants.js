@@ -1,5 +1,5 @@
 export const CATEGORIES = [
-  'DSA', 'SQL', 'DBMS', 'OOP', 'CN', 'OS', 'Java', 'Frontend', 'Technical', 'Aptitude', 'Communication', 'Interview', 'Mock Test'
+  'DSA', 'SQL', 'DBMS', 'OOP', 'CN', 'OS', 'Java', 'C++', 'Frontend', 'Technical', 'Aptitude', 'Communication', 'Interview', 'Mock Test'
 ];
 
 export const CATEGORY_COLORS = {
@@ -10,6 +10,7 @@ export const CATEGORY_COLORS = {
   'CN': '#06b6d4',
   'OS': '#f43f5e',
   'Java': '#f59e0b',
+  'C++': '#0ea5e9',
   'Frontend': '#14b8a6',
   'Technical': '#0284c7',
   'Aptitude': '#84cc16',
