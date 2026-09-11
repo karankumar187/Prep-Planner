@@ -30,12 +30,12 @@ const Dashboard = () => {
   const fetchData = async () => {
     try {
       const todayStr = format(new Date(), 'yyyy-MM-dd');
-      const todayDate = new Date(todayStr);
-      const start = new Date(selectedEnrollment.startDate);
-      start.setHours(0, 0, 0, 0);
-
-      const diffTime = todayDate - start;
-      const dayNum = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      const startStr = format(new Date(selectedEnrollment.startDate), 'yyyy-MM-dd');
+      const [dy, dm, dd] = todayStr.split('-').map(Number);
+      const [sy, sm, sd] = startStr.split('-').map(Number);
+      const dUtc = Date.UTC(dy, dm - 1, dd);
+      const sUtc = Date.UTC(sy, sm - 1, sd);
+      const dayNum = Math.floor((dUtc - sUtc) / (1000 * 60 * 60 * 24)) + 1;
       setCurrentDayNum(dayNum > 0 ? dayNum : 1);
 
       // Fetch overview stats and today's tasks in parallel

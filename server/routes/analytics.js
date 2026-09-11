@@ -4,13 +4,26 @@ const Enrollment = require('../models/Enrollment');
 const ScheduleTask = require('../models/ScheduleTask');
 const TaskProgress = require('../models/TaskProgress');
 
-// Helper to get day number from date
+// Helper to format date in Asia/Kolkata (IST) timezone
+const toDateStr = (d) => {
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date(d));
+};
+
+// Helper to get day number from date in IST
 const getDayNumber = (date, startDate) => {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  const s = new Date(startDate);
-  s.setHours(0, 0, 0, 0);
-  return Math.floor((d - s) / (1000 * 60 * 60 * 24)) + 1;
+  const dStr = toDateStr(date);
+  const sStr = toDateStr(startDate);
+  const [dy, dm, dd] = dStr.split('-').map(Number);
+  const [sy, sm, sd] = sStr.split('-').map(Number);
+  const dUtc = Date.UTC(dy, dm - 1, dd);
+  const sUtc = Date.UTC(sy, sm - 1, sd);
+  return Math.floor((dUtc - sUtc) / (1000 * 60 * 60 * 24)) + 1;
 };
 
 // @route   GET /api/analytics/:enrollmentId/overview
