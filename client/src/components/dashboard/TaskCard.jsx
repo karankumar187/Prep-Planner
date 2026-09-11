@@ -19,19 +19,20 @@ const TaskCard = ({ task, enrollmentId, onToggleComplete, onEdit, onDelete, onMC
   const resourceLink = task.scheduleTask.link;
 
   const handleToggle = () => {
-    // If it's a Reading Material task, force opening the reader modal
-    if (hasReading && !isCompleted) {
+    // Only force opening reader modal for pure reading tasks
+    if (task.scheduleTask.taskType === 'reading' && !isCompleted) {
       setIsReadingOpen(true);
       return;
     }
-    // If it's an MCQ Quiz task, force opening the quiz runner
-    if (hasMCQs && !isCompleted) {
+    // Only force opening quiz runner for pure assessment tasks
+    if (task.scheduleTask.taskType === 'assessment' && hasMCQs && !isCompleted) {
       setIsMCQOpen(true);
       return;
     }
 
-    // Standard task toggle
+    // Standard task toggle (DSA, SQL, coding tasks): ask for actual time
     if (!isCompleted) {
+      setActualTime(task.actualMinutes || task.scheduleTask.estimatedMinutes || 30);
       setShowTimeInput(true);
     } else {
       onToggleComplete(task.scheduleTask._id);
@@ -106,10 +107,18 @@ const TaskCard = ({ task, enrollmentId, onToggleComplete, onEdit, onDelete, onMC
               </div>
 
               {isCompleted && task.actualMinutes && (
-                <div className="flex items-center gap-1 font-mono text-[11px] text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActualTime(task.actualMinutes);
+                    setShowTimeInput(true);
+                  }}
+                  className="flex items-center gap-1 font-mono text-[11px] text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                  title="Click to edit actual study time"
+                >
                   <Clock size={10} />
-                  <span>{task.actualMinutes}m actual</span>
-                </div>
+                  <span>{task.actualMinutes}m actual (click to edit)</span>
+                </button>
               )}
 
               {/* Reading Material Button */}
@@ -152,20 +161,27 @@ const TaskCard = ({ task, enrollmentId, onToggleComplete, onEdit, onDelete, onMC
 
             {/* In-line Actual Time Prompt */}
             {showTimeInput && (
-              <div className="mt-2.5 p-2 bg-slate-900/80 rounded-lg border border-slate-700/80 flex items-center gap-2">
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submitTime();
+                }}
+                className="mt-2.5 p-2 bg-slate-900/90 rounded-lg border border-slate-700 flex items-center gap-2 flex-wrap"
+              >
                 <span className="text-xs text-slate-300 font-medium">Actual study time:</span>
                 <input 
                   type="number" 
+                  min="1"
                   placeholder={`${task.scheduleTask.estimatedMinutes} mins`}
-                  className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white w-24 outline-none focus:border-indigo-500"
+                  className="bg-slate-800 border border-slate-600 rounded px-2.5 py-1 text-xs text-white w-24 outline-none focus:border-indigo-500 font-mono"
                   value={actualTime}
                   onChange={(e) => setActualTime(e.target.value)}
                   autoFocus
                 />
+                <span className="text-xs text-slate-400">mins</span>
                 <button 
-                  type="button"
-                  onClick={submitTime} 
-                  className="bg-indigo-600 text-white px-2.5 py-1 rounded text-xs hover:bg-indigo-500 font-semibold transition-colors"
+                  type="submit" 
+                  className="bg-indigo-600 text-white px-3 py-1 rounded text-xs hover:bg-indigo-500 font-semibold transition-colors shadow-sm"
                 >
                   Save
                 </button>
@@ -176,7 +192,7 @@ const TaskCard = ({ task, enrollmentId, onToggleComplete, onEdit, onDelete, onMC
                 >
                   Cancel
                 </button>
-              </div>
+              </form>
             )}
           </div>
         </div>

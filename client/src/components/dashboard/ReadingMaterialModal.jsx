@@ -6,6 +6,9 @@ import CategoryPill from '../shared/CategoryPill';
 
 const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleComplete }) => {
   const [isCopied, setIsCopied] = useState(false);
+  const [actualMinutes, setActualMinutes] = useState(
+    task?.actualMinutes || task?.scheduleTask?.estimatedMinutes || 30
+  );
 
   if (!isOpen || !task) return null;
 
@@ -31,8 +34,11 @@ const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleCom
   };
 
   const handleComplete = () => {
-    if (!isCompleted && onToggleComplete) {
-      onToggleComplete(task.scheduleTask._id, task.scheduleTask.estimatedMinutes);
+    if (onToggleComplete) {
+      const timeToSave = Number(actualMinutes) > 0 
+        ? Number(actualMinutes) 
+        : (task.scheduleTask?.estimatedMinutes || 30);
+      onToggleComplete(task.scheduleTask._id, timeToSave);
     }
     onClose();
   };
@@ -175,14 +181,35 @@ const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleCom
         </div>
 
         {/* Footer */}
-        <div className="flex justify-between items-center px-6 py-4 border-t border-slate-700 bg-slate-800">
-          <button
-            onClick={handleCopy}
-            className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-700 text-slate-300 hover:text-white"
-          >
-            {isCopied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
-            <span>{isCopied ? 'Copied!' : 'Copy'}</span>
-          </button>
+        <div className="flex flex-wrap justify-between items-center px-6 py-4 border-t border-slate-700 bg-slate-800 gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleCopy}
+              className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-700 text-slate-300 hover:text-white"
+            >
+              {isCopied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
+              <span>{isCopied ? 'Copied!' : 'Copy'}</span>
+            </button>
+
+            {/* Actual Time Input */}
+            <div className="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-700">
+              <Clock size={14} className="text-indigo-400" />
+              <span className="text-xs font-medium text-slate-300">Actual Time:</span>
+              <div className="flex items-center">
+                <input
+                  type="number"
+                  min="1"
+                  placeholder={`${task.scheduleTask?.estimatedMinutes || 30}`}
+                  value={actualMinutes}
+                  onChange={(e) => setActualMinutes(e.target.value)}
+                  className="bg-slate-800 border border-slate-600 rounded-l-lg px-2 py-1 text-xs text-white w-16 outline-none focus:border-indigo-500 font-mono text-center"
+                />
+                <span className="bg-slate-700 border border-l-0 border-slate-600 rounded-r-lg px-2 py-1 text-xs text-slate-400 font-mono">
+                  mins
+                </span>
+              </div>
+            </div>
+          </div>
 
           <div className="flex gap-3 ml-auto">
             <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-700 transition-colors">
@@ -192,12 +219,12 @@ const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleCom
               onClick={handleComplete}
               className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all shadow-md ${
                 isCompleted 
-                  ? 'bg-slate-700 text-green-400 border border-green-500/30' 
+                  ? 'bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-600/30' 
                   : 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-indigo-500/20'
               }`}
             >
               <CheckCircle2 size={16} />
-              <span>{isCompleted ? 'Completed' : 'Mark as Read'}</span>
+              <span>{isCompleted ? 'Update Time & Done' : 'Mark as Completed'}</span>
             </button>
           </div>
         </div>
