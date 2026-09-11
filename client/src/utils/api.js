@@ -60,7 +60,7 @@ export const deleteEnrollment = (id) => api.delete(`/enrollments/${id}`);
 
 // Progress
 export const getProgress = (enrollmentId, date) => api.get(`/progress/${enrollmentId}${date ? `?date=${date}` : ''}`);
-export const toggleComplete = (scheduleTaskId, enrollmentId, actualMinutes) => api.post('/progress/toggle', { scheduleTaskId, enrollmentId, actualMinutes });
+export const toggleComplete = (scheduleTaskId, enrollmentId, actualMinutes, completed) => api.post('/progress/toggle', { scheduleTaskId, enrollmentId, actualMinutes, completed });
 export const submitMCQ = (scheduleTaskId, enrollmentId, userAnswers, actualMinutes) => api.post('/progress/submit-mcq', { scheduleTaskId, enrollmentId, userAnswers, actualMinutes });
 export const updateProgress = (scheduleTaskId, enrollmentId, data) => api.put('/progress', { scheduleTaskId, enrollmentId, ...data });
 

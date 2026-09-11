@@ -35,12 +35,15 @@ const TaskCard = ({ task, enrollmentId, onToggleComplete, onEdit, onDelete, onMC
       setActualTime(task.actualMinutes || task.scheduleTask.estimatedMinutes || 30);
       setShowTimeInput(true);
     } else {
-      onToggleComplete(task.scheduleTask._id);
+      // Uncheck task
+      onToggleComplete(task.scheduleTask._id, null, false);
     }
   };
 
   const submitTime = () => {
-    onToggleComplete(task.scheduleTask._id, Number(actualTime) || task.scheduleTask.estimatedMinutes);
+    const mins = Number(actualTime) > 0 ? Number(actualTime) : (task.scheduleTask.estimatedMinutes || 30);
+    // Explicitly set completed = true with the actual time
+    onToggleComplete(task.scheduleTask._id, mins, true);
     setShowTimeInput(false);
     setActualTime('');
   };

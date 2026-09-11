@@ -51,22 +51,22 @@ const Dashboard = () => {
     }
   };
 
-  const handleToggle = async (taskId, actualMins) => {
+  const handleToggle = async (taskId, actualMins, targetCompleted) => {
     // Optimistic UI update (instant 0ms feedback)
     setTodayTasks(prev => prev.map(t => {
       if (t.scheduleTask._id === taskId) {
-        const nextCompleted = !t.completed;
+        const nextCompleted = typeof targetCompleted === 'boolean' ? targetCompleted : !t.completed;
         return {
           ...t,
           completed: nextCompleted,
-          actualMinutes: nextCompleted ? (actualMins || t.scheduleTask.estimatedMinutes) : null
+          actualMinutes: nextCompleted ? (actualMins || t.actualMinutes || t.scheduleTask.estimatedMinutes) : null
         };
       }
       return t;
     }));
 
     try {
-      await toggleComplete(taskId, selectedEnrollment._id, actualMins);
+      await toggleComplete(taskId, selectedEnrollment._id, actualMins, targetCompleted);
       fetchData();
     } catch (err) {
       console.error(err);
@@ -182,9 +182,7 @@ const Dashboard = () => {
         </div>
       ) : (
         <div className="space-y-3">
-          {[...todayTasks]
-            .sort((a, b) => (a.completed === b.completed ? 0 : a.completed ? 1 : -1))
-            .map(task => (
+          {todayTasks.map(task => (
               <TaskCard 
                 key={task.scheduleTask._id} 
                 task={task} 

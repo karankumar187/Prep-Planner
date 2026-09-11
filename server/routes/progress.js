@@ -94,7 +94,7 @@ router.get('/:enrollmentId', async (req, res) => {
 // @desc    Toggle task completion (Optimized with lean projection)
 router.post('/toggle', async (req, res) => {
   try {
-    const { scheduleTaskId, enrollmentId, actualMinutes } = req.body;
+    const { scheduleTaskId, enrollmentId, actualMinutes, completed } = req.body;
 
     const [enrollment, task] = await Promise.all([
       Enrollment.findOne({
@@ -114,23 +114,30 @@ router.post('/toggle', async (req, res) => {
       scheduleTaskId
     });
 
-    const timeSpent = actualMinutes || (task ? task.estimatedMinutes : 30);
+    const timeSpent = actualMinutes !== undefined && actualMinutes !== null 
+      ? Number(actualMinutes) 
+      : (task ? task.estimatedMinutes : 30);
 
     if (progress) {
-      progress.completed = !progress.completed;
-      progress.completedAt = progress.completed ? new Date() : null;
+      if (typeof completed === 'boolean') {
+        progress.completed = completed;
+      } else {
+        progress.completed = !progress.completed;
+      }
+      progress.completedAt = progress.completed ? (progress.completedAt || new Date()) : null;
       if (progress.completed) {
         progress.actualMinutes = timeSpent;
       }
       await progress.save();
     } else {
+      const isComp = typeof completed === 'boolean' ? completed : true;
       progress = new TaskProgress({
         userId: req.user.userId,
         enrollmentId,
         scheduleTaskId,
-        completed: true,
-        completedAt: new Date(),
-        actualMinutes: timeSpent
+        completed: isComp,
+        completedAt: isComp ? new Date() : null,
+        actualMinutes: isComp ? timeSpent : null
       });
       await progress.save();
     }

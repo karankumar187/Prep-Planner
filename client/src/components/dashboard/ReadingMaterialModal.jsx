@@ -38,7 +38,7 @@ const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleCom
       const timeToSave = Number(actualMinutes) > 0 
         ? Number(actualMinutes) 
         : (task.scheduleTask?.estimatedMinutes || 30);
-      onToggleComplete(task.scheduleTask._id, timeToSave);
+      onToggleComplete(task.scheduleTask._id, timeToSave, true);
     }
     onClose();
   };

@@ -67,9 +67,9 @@ const Calendar = () => {
     }
   };
 
-  const handleToggle = async (taskId, actualMins) => {
+  const handleToggle = async (taskId, actualMins, targetCompleted) => {
     try {
-      await toggleComplete(taskId, selectedEnrollment._id, actualMins);
+      await toggleComplete(taskId, selectedEnrollment._id, actualMins, targetCompleted);
       fetchDayData();
       fetchMonthData();
     } catch (err) {
@@ -298,9 +298,7 @@ const Calendar = () => {
               </div>
             ) : (
               <div className="space-y-2 max-h-[470px] overflow-y-auto pr-1 custom-scrollbar">
-                {[...filteredTasks]
-                  .sort((a, b) => (a.completed === b.completed ? 0 : a.completed ? 1 : -1))
-                  .map(task => (
+                {filteredTasks.map(task => (
                     <TaskCard 
                       key={task.scheduleTask._id} 
                       task={task} 
