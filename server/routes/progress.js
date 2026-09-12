@@ -76,8 +76,8 @@ router.get('/:enrollmentId', async (req, res) => {
         studyCompleted: p ? (p.studyCompleted || false) : false,
         studyMinutes: p ? (p.studyMinutes || null) : null,
         quizMinutes: p ? (p.quizMinutes || null) : null,
-        mcqScore: p ? p.mcqScore : null,
-        mcqAnswers: p ? p.mcqAnswers : [],
+        mcqScore: (p && p.mcqScore && p.mcqScore.total > 0) ? p.mcqScore : null,
+        mcqAnswers: (p && p.mcqAnswers && p.mcqAnswers.length > 0) ? p.mcqAnswers : [],
         progress: p || {
           completed: false,
           completedAt: null,
@@ -150,7 +150,9 @@ router.post('/study-complete', async (req, res) => {
         studyMinutes: sMinutes,
         completed: !hasQuiz,
         completedAt: !hasQuiz ? new Date() : null,
-        actualMinutes: !hasQuiz ? sMinutes : null
+        actualMinutes: !hasQuiz ? sMinutes : null,
+        mcqScore: null,
+        mcqAnswers: []
       });
       await progress.save();
     }

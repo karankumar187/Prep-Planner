@@ -4,6 +4,7 @@ import OverviewStats from '../components/analytics/OverviewStats';
 import DailyProgressChart from '../components/analytics/DailyProgressChart';
 import CategoryDonutChart from '../components/analytics/CategoryDonutChart';
 import StudyTimeTrend from '../components/analytics/StudyTimeTrend';
+import QuizPerformanceCard from '../components/analytics/QuizPerformanceCard';
 import { getOverview, getCategoryAnalytics, getWeeklyAnalytics, getStudyTimeAnalytics } from '../utils/api';
 
 const Analytics = () => {
@@ -26,14 +27,16 @@ const Analytics = () => {
   if (!selectedEnrollment) return <div className="text-white">Please select a schedule.</div>;
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Analytics</h2>
       </div>
 
       <OverviewStats stats={stats} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+      <QuizPerformanceCard quizStats={stats.quizStats} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <DailyProgressChart data={weeklyData} />
         <CategoryDonutChart data={categoryData} />
         <div className="lg:col-span-2">

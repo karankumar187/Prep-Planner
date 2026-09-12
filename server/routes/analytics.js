@@ -46,10 +46,10 @@ router.get('/:enrollmentId/overview', async (req, res) => {
         userId: req.user.userId,
         completed: true
       })
-      .select('scheduleTaskId actualMinutes completedAt')
+      .select('scheduleTaskId actualMinutes quizMinutes completedAt mcqScore mcqAnswers')
       .populate({
         path: 'scheduleTaskId',
-        select: 'dayNumber estimatedMinutes'
+        select: 'title category dayNumber estimatedMinutes'
       })
       .lean()
     ]);
@@ -122,13 +122,51 @@ router.get('/:enrollmentId/overview', async (req, res) => {
       bestStreak = currentStreak;
     }
 
+    // Compute Quiz & Assessment Performance
+    let totalQuizScore = 0;
+    let totalQuizQuestions = 0;
+    let quizzesTaken = 0;
+    const quizHistory = [];
+
+    progressDocs.forEach(p => {
+      if (p.mcqScore && p.mcqScore.total > 0) {
+        quizzesTaken++;
+        totalQuizScore += (p.mcqScore.score || 0);
+        totalQuizQuestions += p.mcqScore.total;
+        quizHistory.push({
+          taskId: p.scheduleTaskId?._id,
+          title: p.scheduleTaskId?.title || 'Assessment Quiz',
+          category: p.scheduleTaskId?.category || 'Technical',
+          dayNumber: p.scheduleTaskId?.dayNumber || 1,
+          score: p.mcqScore.score,
+          total: p.mcqScore.total,
+          percentage: p.mcqScore.percentage,
+          quizMinutes: p.quizMinutes || null,
+          completedAt: p.completedAt
+        });
+      }
+    });
+
+    const averageAccuracy = totalQuizQuestions > 0 
+      ? Math.round((totalQuizScore / totalQuizQuestions) * 100) 
+      : 0;
+
+    quizHistory.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+
     res.json({
       completionRate,
       completed: completedCount,
       totalTasks,
       studyHours: parseFloat((totalActualMinutes / 60).toFixed(1)),
       currentStreak,
-      bestStreak
+      bestStreak,
+      quizStats: {
+        quizzesTaken,
+        totalScore: totalQuizScore,
+        totalQuestions: totalQuizQuestions,
+        averageAccuracy,
+        history: quizHistory
+      }
     });
   } catch (err) {
     console.error(err.message);

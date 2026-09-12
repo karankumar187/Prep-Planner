@@ -15,11 +15,26 @@ const MCQRunnerModal = ({ isOpen, onClose, task, enrollmentId, onSubmitted }) =>
   const [autoSubmitted, setAutoSubmitted] = useState(false);
   const timerRef = useRef(null);
 
+  const [retaking, setRetaking] = useState(false);
+
+  // Reset retaking and result when modal closes or opens for a new task
+  useEffect(() => {
+    setResult(null);
+    setRetaking(false);
+  }, [isOpen, task?.scheduleTask?._id]);
+
   const mcqs = task?.scheduleTask?.mcqs || [];
-  const existingScore = task?.mcqScore;
-  const existingAnswers = task?.mcqAnswers || [];
-  const isCompleted = task?.completed || !!result;
-  const activeResult = result || (existingScore ? { mcqScore: existingScore, mcqAnswers: existingAnswers } : null);
+  
+  // A completed quiz result exists only if task is completed AND has a positive total questions score AND has saved answers
+  const hasTakenQuiz = Boolean(
+    task?.completed && 
+    task?.mcqScore && 
+    task.mcqScore.total > 0 && 
+    Array.isArray(task?.mcqAnswers) && 
+    task.mcqAnswers.length > 0
+  );
+
+  const activeResult = result || (!retaking && hasTakenQuiz ? { mcqScore: task.mcqScore, mcqAnswers: task.mcqAnswers } : null);
 
   // Initialize timer on open
   useEffect(() => {
@@ -172,6 +187,23 @@ const MCQRunnerModal = ({ isOpen, onClose, task, enrollmentId, onSubmitted }) =>
                   <span className="text-slate-500">|</span>
                   <span>Limit: <strong className="text-white">{timeLimitMinutes} min</strong></span>
                 </div>
+
+                <div className="mt-4 flex justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResult(null);
+                      setRetaking(true);
+                      setUserAnswers({});
+                      setCurrentIdx(0);
+                      setTimeLeftSeconds(timeLimitMinutes * 60);
+                      setElapsedSeconds(0);
+                    }}
+                    className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 transition-all cursor-pointer"
+                  >
+                    <span>Retake Assessment</span>
+                  </button>
+                </div>
               </div>
 
               {/* Question Breakdown */}
@@ -277,7 +309,30 @@ const MCQRunnerModal = ({ isOpen, onClose, task, enrollmentId, onSubmitted }) =>
         </div>
 
         {/* Footer */}
-        {!activeResult && mcqs.length > 0 && (
+        {activeResult ? (
+          <div className="flex justify-between items-center px-6 py-4 border-t border-slate-700 bg-slate-800">
+            <button
+              type="button"
+              onClick={() => {
+                setResult(null);
+                setRetaking(true);
+                setUserAnswers({});
+                setCurrentIdx(0);
+                setTimeLeftSeconds(timeLimitMinutes * 60);
+                setElapsedSeconds(0);
+              }}
+              className="px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+            >
+              Retake Assessment
+            </button>
+            <button
+              onClick={onClose}
+              className="px-5 py-2 rounded-lg text-sm bg-slate-700 hover:bg-slate-600 text-white font-medium"
+            >
+              Close
+            </button>
+          </div>
+        ) : mcqs.length > 0 && (
           <div className="flex justify-between items-center px-6 py-4 border-t border-slate-700 bg-slate-800">
             <button
               disabled={currentIdx === 0}

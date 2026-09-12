@@ -11,9 +11,12 @@ const taskProgressSchema = new mongoose.Schema({
   studyMinutes: { type: Number, default: null },
   quizMinutes: { type: Number, default: null },
   mcqScore: {
-    score: { type: Number, default: 0 },
-    total: { type: Number, default: 0 },
-    percentage: { type: Number, default: 0 }
+    type: {
+      score: { type: Number },
+      total: { type: Number },
+      percentage: { type: Number }
+    },
+    default: null
   },
   mcqAnswers: [{
     questionIndex: Number,
