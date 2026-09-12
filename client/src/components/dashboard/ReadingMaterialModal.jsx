@@ -67,8 +67,8 @@ const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleCom
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-3 md:p-6">
-      <div className="bg-slate-800 rounded-2xl w-full max-w-3xl border border-slate-700 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-2 sm:p-4 md:p-6">
+      <div className="bg-slate-800 rounded-2xl w-[96vw] max-w-6xl xl:max-w-7xl border border-slate-700 shadow-2xl flex flex-col max-h-[94vh] overflow-hidden">
         {/* Header */}
         <div className="flex justify-between items-center px-5 py-4 border-b border-slate-700 bg-slate-800/90">
           <div className="flex items-center gap-3 min-w-0">
@@ -164,7 +164,7 @@ const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleCom
                   );
                 }
                 return (
-                  <pre className="bg-slate-950 p-4 rounded-xl text-xs md:text-sm font-mono text-emerald-400 overflow-x-auto my-4 border border-slate-700/80 shadow-inner">
+                  <pre className="bg-slate-950 p-4 md:p-5 rounded-xl text-xs md:text-sm font-mono text-emerald-400 overflow-x-auto my-4 border border-slate-700/80 shadow-inner whitespace-pre-wrap break-words leading-relaxed">
                     <code {...props}>{children}</code>
                   </pre>
                 );
@@ -192,10 +192,10 @@ const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleCom
                 </tr>
               ),
               th: ({ children }) => (
-                <th className="p-3.5 font-bold border-r border-slate-700/60 last:border-r-0">{children}</th>
+                <th className="p-3.5 font-bold border-r border-slate-700/60 last:border-r-0 whitespace-normal">{children}</th>
               ),
               td: ({ children }) => (
-                <td className="p-3 border-r border-slate-800/60 last:border-r-0">{children}</td>
+                <td className="p-3 border-r border-slate-800/60 last:border-r-0 whitespace-normal break-words">{children}</td>
               )
             }}
           >

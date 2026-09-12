@@ -24,7 +24,7 @@ const MCQRunnerModal = ({ isOpen, onClose, task, enrollmentId, onSubmitted }) =>
   // Initialize timer on open
   useEffect(() => {
     if (isOpen && task && !activeResult) {
-      const initialSeconds = (task.scheduleTask?.estimatedMinutes || 10) * 60;
+      const initialSeconds = timeLimitMinutes * 60;
       setTimeLeftSeconds(initialSeconds);
       setElapsedSeconds(0);
       setAutoSubmitted(false);
@@ -111,8 +111,8 @@ const MCQRunnerModal = ({ isOpen, onClose, task, enrollmentId, onSubmitted }) =>
   const isLowTime = timeLeftSeconds <= 60 && !activeResult;
 
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 rounded-2xl w-full max-w-2xl border border-slate-700 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-3 md:p-6">
+      <div className="bg-slate-800 rounded-2xl w-full max-w-4xl xl:max-w-5xl border border-slate-700 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-slate-700 bg-slate-800/90">
           <div>
