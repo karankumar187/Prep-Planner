@@ -343,70 +343,76 @@ For \`fun(5)\`:
     ]
   },
 
-  // ==================== DAY 10: TECHNICAL (MS OFFICE ADVANCED & CLOUD) ====================
+  // ==================== DAY 10: TECHNICAL (MS OFFICE ADVANCED & AUTOMATION) ====================
   {
     dayNumber: 10,
-    title: 'MS Office Advanced & Cloud Architecture Concepts',
+    title: 'MS Office Advanced: Word, PowerPoint & Excel Automation Mastery',
     category: 'Technical',
     taskType: 'reading',
     priority: 'High',
     estimatedMinutes: 70,
-    readingContent: `# MS Office Advanced & Cloud Architecture Concepts
+    readingContent: `# MS Office Advanced: Word, PowerPoint & Excel Automation Mastery
 
-Accenture AEH covers MS PowerPoint/Word formatting in the common applications section alongside Enterprise Cloud Architecture fundamentals (IaaS, PaaS, SaaS, virtualization, and the shared responsibility model).
-
----
-
-## 1. MS PowerPoint & Word Advanced Features
-
-### A. PowerPoint Slide Master
-- **Slide Master**: The top slide in the hierarchy that controls themes, fonts, colors, background styles, and positioning of placeholders for all subsequent layout slides.
-- Modifying the Slide Master globally updates all associated slides instantly.
-- **Presenter View**: Allows the speaker to view speaker notes, upcoming slides, and a presentation timer on their monitor while attendees view only the full-screen slide on the projector.
-- Key Shortcuts:
-  - **\`F5\`**: Start slideshow from slide 1.
-  - **\`Shift + F5\`**: Start slideshow from the **current active slide**.
-  - **\`B\` / \`W\`**: Toggle black screen / white screen during a presentation.
-
-### B. MS Word Features
-- **Mail Merge**: Merges a master document (template letter/envelope) with a data source (Excel spreadsheet, Access database) to generate personalized bulk correspondence.
-- **Section Breaks vs Page Breaks**:
-  - *Page Break*: Moves text to the top of the next page without altering document formatting.
-  - *Section Break (Continuous / Next Page)*: Permits distinct page setups (e.g. portrait vs landscape, header/footer changes, multi-column layouts) within different portions of the same file.
+The Common Applications & Technical Assessment section of Accenture AEH extensively tests advanced workplace software workflows, formatting automation, keyboard efficiency, and cross-application data integration across MS Word, PowerPoint, and Excel.
 
 ---
 
-## 2. Cloud Computing Service Models
+## 1. MS PowerPoint Architecture & Delivery
 
-| Model | Full Name | Definition | Customer Manages | Cloud Provider Manages | Examples |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **IaaS** | Infrastructure as a Service | Rents raw computing resources (VMs, storage, network) | OS, Middleware, Runtime, Data, Applications | Physical hardware, Hypervisors, Data centers | AWS EC2, Azure VMs, GCE |
-| **PaaS** | Platform as a Service | Managed hardware + software environment for building apps | Applications, Data | OS, Runtime, Middleware, Patching, Virtualization | AWS Elastic Beanstalk, Heroku |
-| **SaaS** | Software as a Service | End-user web applications delivered over the internet | Minimal configurations & user data | Entire stack (hardware, OS, application, security) | Google Workspace, Microsoft 365 |
+### A. The Slide Master Hierarchy
+- **Slide Master**: The top-level slide in the hierarchy hierarchy tree that controls the theme, fonts, background styling, color palettes, and positional placeholders for all descendant layout slides in a presentation deck.
+- **Global Inheritance**: Changing a font or adding a company logo on the Slide Master immediately propagates to every slide utilizing that master.
+- **Layout Slides**: Individual layout variations (Title Slide, Title & Content, Two Content, Blank) inherit master properties but allow specialized formatting.
 
----
-
-## 3. Cloud Deployment Models
-- **Public Cloud**: Shared multitenant physical infrastructure owned and operated by a third-party CSP over the public internet (AWS, Azure, GCP).
-- **Private Cloud**: Infrastructure provisioned exclusively for a single organization; hosted on-premises or by a dedicated vendor.
-- **Hybrid Cloud**: Connects private on-premises infrastructure with public cloud platforms via secure VPN/Direct Connect to enable workload portability.
-- **Community Cloud**: Shared by multiple organizations with common regulatory or mission goals (e.g. healthcare, federal government).
-
----
-
-## 4. Virtualization & Containers
-- **Hypervisor Type 1 (Bare-Metal)**: Runs directly on bare physical server hardware without an underlying host OS (e.g. VMware ESXi, Microsoft Hyper-V). Low latency, high enterprise performance.
-- **Hypervisor Type 2 (Hosted)**: Runs as an application on top of an existing host OS (e.g. VirtualBox, VMware Workstation).
-- **Containers vs Virtual Machines**:
-  - *Virtual Machines (VMs)*: Virtualize physical hardware. Each VM includes a full guest OS, binaries, and virtual hardware (heavyweight, minutes to boot).
-  - *Containers (Docker)*: Virtualize the **OS kernel**. Containers share the host kernel and isolate user spaces (lightweight, megabytes in size, sub-second boot).
+### B. Presenter View & Delivery Shortcuts
+- **Presenter View**: Allows the speaker to view upcoming slides, speaker notes, and an elapsed presentation timer on their private display while the audience sees only the full-screen slide on the primary projection monitor.
+- **Critical Shortcuts**:
+  - \`F5\`: Launch presentation starting from **Slide 1**.
+  - \`Shift + F5\`: Launch presentation starting directly from the **current active slide**.
+  - \`B\`: Blank screen to pure **Black** (pauses audience focus).
+  - \`W\`: Blank screen to pure **White**.
+  - \`Ctrl + P\`: Convert cursor to an active **Pen tool** during presentation.
+  - \`Ctrl + E\`: Convert cursor to an **Eraser**.
+  - \`Esc\`: Immediately terminate the slideshow.
 
 ---
 
-## 5. Cloud Shared Responsibility Model
-- In **On-Premises**: Customer owns 100% of the stack (from physical facilities to application data).
-- In **IaaS**: Provider owns physical datacenter, servers, and hypervisor; Customer secures OS, firewalls, and application.
-- In **SaaS**: Provider owns infrastructure, OS, runtime, and software; Customer is responsible only for **user credentials and data classification**.`,
+## 2. MS Word Advanced Document Automation
+
+### A. Mail Merge Pipeline
+Mail Merge automates mass production of personalized correspondence (offer letters, invoices, certificates) by linking two files:
+1. **Main Document**: The template letter containing fixed text and contextual placeholders known as **Merge Fields** (e.g., \`«First_Name»\`, \`«Annual_CTC»\`).
+2. **Data Source**: A structured table (Excel workbook, Access database, or CSV file) containing records with column headers matching merge fields.
+3. **Merged Result**: Generates a unified output file or sends customized emails directly via Outlook.
+
+### B. Page Breaks vs Section Breaks
+- **Page Break (\`Ctrl + Enter\`)**: Force-terminates the current page and moves subsequent text to the top of the next page. Document headers, margins, and page orientations remain identical across pages.
+- **Section Breaks**: Divide a document into independent formatting zones:
+  - *Next Page Section Break*: Starts a new section on the subsequent page. **Mandatory** when switching between Portrait and Landscape orientations in the middle of a document, or when restarting page numbers (e.g. Roman numerals \`i, ii, iii\` for preface, Arabic numerals \`1, 2, 3\` for chapters).
+  - *Continuous Section Break*: Starts a new section on the exact same page. Used to switch between standard single-column text and multi-column magazine layouts without starting a new page.
+
+---
+
+## 3. Advanced Excel Formulas & Data Analysis
+
+### A. Dynamic Array Formulas & Lookup Matrix
+- **XLOOKUP**: Replaces \`VLOOKUP\` and \`HLOOKUP\`. Supports left-lookups, exact match by default, and custom missing values:
+  \`\`\`text
+  =XLOOKUP(lookup_value, lookup_array, return_array, [if_not_found], [match_mode])
+  \`\`\`
+- **INDEX & MATCH**: The legacy enterprise gold standard for 2D matrix lookups:
+  \`\`\`text
+  =INDEX(return_range, MATCH(lookup_val, lookup_col, 0))
+  \`\`\`
+- **SUMIFS / COUNTIFS**: Evaluates multiple simultaneous criteria using boolean AND logic across column ranges:
+  \`\`\`text
+  =SUMIFS(sum_range, criteria_range1, ">=100", criteria_range2, "Bangalore")
+  \`\`\`
+
+### B. Pivot Tables, Slicers & Macros
+- **Pivot Table**: An interactive data summarization engine that rapidly sorts, counts, totals, or averages data stored in a table without altering raw dataset rows.
+- **Slicers**: Visual graphical filter buttons connected to Pivot Tables for executive dashboards.
+- **Macros (VBA)**: Automated recording of repetitive action sequences compiled into Visual Basic for Applications scripts (saved with \`.xlsm\` extension). Shortcut to open VBA editor: \`Alt + F11\`.`,
     mcqs: [
       {
         question: 'Which PowerPoint feature allows you to modify the font, color, and logo styling globally across every layout slide in a deck?',
@@ -424,48 +430,53 @@ Accenture AEH covers MS PowerPoint/Word formatting in the common applications se
         correctOption: 1
       },
       {
-        question: 'Under the Cloud Shared Responsibility Model, which layer is ALWAYS the customer\'s responsibility across IaaS, PaaS, and SaaS?',
-        options: ['Hypervisor patch management', 'Data governance and client access credentials', 'Physical data center cooling', 'Operating system updates'],
-        correctOption: 1
-      },
-      {
-        question: 'Which cloud service model does AWS Elastic Beanstalk and Google App Engine represent?',
-        options: ['IaaS (Infrastructure as a Service)', 'PaaS (Platform as a Service)', 'SaaS (Software as a Service)', 'FaaS (Function as a Service) exclusively'],
-        correctOption: 1
-      },
-      {
-        question: 'What differentiates a Type 1 (Bare-Metal) hypervisor from a Type 2 hypervisor?',
-        options: [
-          'Type 1 runs directly on the host hardware without a conventional host OS; Type 2 runs on top of an existing host OS',
-          'Type 1 is only used for container orchestration',
-          'Type 2 does not allow running Windows operating systems',
-          'Type 1 cannot virtualize network interfaces'
-        ],
-        correctOption: 0
-      },
-      {
-        question: 'How do Docker containers achieve significantly faster startup times compared to traditional Virtual Machines?',
-        options: [
-          'Containers emulate hardware using software BIOS',
-          'Containers share the host operating system kernel and avoid bundling a full guest OS',
-          'Containers run exclusively in CPU L1 cache',
-          'Containers bypass network stack configuration entirely'
-        ],
-        correctOption: 1
-      },
-      {
-        question: 'Which cloud deployment model enables an organization to run sensitive customer data on on-premises private servers while bursting web traffic onto AWS during peak hours?',
-        options: ['Community Cloud', 'Hybrid Cloud', 'Public Cloud', 'Distributed Sovereign Cloud'],
-        correctOption: 1
-      },
-      {
         question: 'During an active PowerPoint presentation in slideshow mode, which key can the presenter tap to turn the projection screen completely black?',
         options: ['Esc', 'B', 'Alt + Tab', 'Ctrl + B'],
         correctOption: 1
       },
       {
-        question: 'Which MS Word feature allows automated creation of hundreds of personalized certificates or letters using names stored in an Excel spreadsheet?',
+        question: 'Which MS Word feature allows automated creation of hundreds of personalized letters or certificates using names stored in an Excel spreadsheet?',
         options: ['AutoText Engine', 'Mail Merge', 'Data Consolidation', 'Track Changes'],
+        correctOption: 1
+      },
+      {
+        question: 'Which keyboard shortcut immediately opens the Visual Basic for Applications (VBA) macro editor in Microsoft Excel?',
+        options: ['Alt + F11', 'Ctrl + Shift + M', 'F12', 'Ctrl + Alt + V'],
+        correctOption: 0
+      },
+      {
+        question: 'In Microsoft Excel, how does the modern XLOOKUP function improve upon traditional VLOOKUP?',
+        options: [
+          'It can look to the left of the lookup column and defaults to an exact match without needing column index numbers',
+          'It can only search text strings and cannot search numeric values',
+          'It requires data in the lookup table to be sorted in ascending order',
+          'It cannot return arrays of values'
+        ],
+        correctOption: 0
+      },
+      {
+        question: 'In Microsoft Word, what is the key difference between a Page Break and a Continuous Section Break?',
+        options: [
+          'A Page Break moves text to a new page; a Continuous Section Break creates an independent formatting zone on the same page',
+          'A Page Break can change header/footer numbering; a Section Break cannot',
+          'A Continuous Section Break deletes paragraph formatting',
+          'There is no difference between them'
+        ],
+        correctOption: 0
+      },
+      {
+        question: 'During a presentation in PowerPoint Presenter View, what information is visible to the speaker that audience members cannot see?',
+        options: [
+          'Speaker notes, elapsed presentation timer, and preview of upcoming slides',
+          'Audience member email addresses',
+          'Operating system registry settings',
+          'Network router IP traffic'
+        ],
+        correctOption: 0
+      },
+      {
+        question: 'What file extension is used to save a Microsoft Excel workbook that contains executable Visual Basic (VBA) macros?',
+        options: ['.xlsx', '.xlsm', '.xltx', '.csv'],
         correctOption: 1
       }
     ]

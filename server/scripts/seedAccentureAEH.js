@@ -13,6 +13,8 @@ const technicalTasks = require('./accenture_content/technical');
 const coreCSTasks = require('./accenture_content/core_cs');
 const javaTasks = require('./accenture_content/java_track');
 const cppTasks = require('./accenture_content/cpp_track');
+const cloudTasks = require('./accenture_content/cloud_track');
+const networkSecurityTasks = require('./accenture_content/network_security');
 
 const tasksData = [
   // ==================== DAY 1 ====================
@@ -1696,7 +1698,7 @@ async function seed() {
 
     // 4. Insert all curated tasks (60 DSA/SQL + 29 Rich Technical/Core CS/Java/C++ modules with 10 MCQs each)
     const codingTasks = tasksData.filter(t => t.category === 'DSA' || t.category === 'SQL');
-    const richNonCoding = [...technicalTasks, ...coreCSTasks, ...javaTasks, ...cppTasks];
+    const richNonCoding = [...technicalTasks, ...coreCSTasks, ...javaTasks, ...cppTasks, ...cloudTasks, ...networkSecurityTasks];
     const combinedTasks = [...codingTasks, ...richNonCoding].sort((a, b) => a.dayNumber - b.dayNumber);
 
     const tasksToInsert = combinedTasks.map(t => ({
