@@ -7,6 +7,9 @@ const taskProgressSchema = new mongoose.Schema({
   completed: { type: Boolean, default: false },
   completedAt: { type: Date, default: null },
   actualMinutes: { type: Number, default: null },
+  studyCompleted: { type: Boolean, default: false },
+  studyMinutes: { type: Number, default: null },
+  quizMinutes: { type: Number, default: null },
   mcqScore: {
     score: { type: Number, default: 0 },
     total: { type: Number, default: 0 },

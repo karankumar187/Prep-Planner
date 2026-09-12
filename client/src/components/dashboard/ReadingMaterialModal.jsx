@@ -1,19 +1,24 @@
 import React, { useState } from 'react';
-import { X, BookOpen, Clock, CheckCircle2, Copy, Check } from 'lucide-react';
+import { X, BookOpen, Clock, CheckCircle2, Copy, Check, HelpCircle, ArrowRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import CategoryPill from '../shared/CategoryPill';
+import { completeStudyMaterial } from '../../utils/api';
 
-const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleComplete }) => {
+const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleComplete, onProceedToQuiz, onStudyCompleted }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [actualMinutes, setActualMinutes] = useState(
-    task?.actualMinutes || task?.scheduleTask?.estimatedMinutes || 30
+    task?.studyMinutes || task?.actualMinutes || task?.scheduleTask?.estimatedMinutes || 30
   );
+  const [isSaving, setIsSaving] = useState(false);
+  const [justUnlockedQuiz, setJustUnlockedQuiz] = useState(false);
 
   if (!isOpen || !task) return null;
 
   const rawContent = task.scheduleTask?.readingContent || 'No study notes provided for this module.';
   const isCompleted = task.completed;
+  const hasMCQs = task.scheduleTask?.mcqs && task.scheduleTask.mcqs.length > 0;
+  const isStudyAlreadyCompleted = task.studyCompleted || justUnlockedQuiz;
 
   // Pre-processor for single-line LLM table outputs (converts || or | | between rows to newlines)
   const preprocessContent = (content) => {
@@ -33,14 +38,32 @@ const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleCom
     setTimeout(() => setIsCopied(false), 2000);
   };
 
-  const handleComplete = () => {
-    if (onToggleComplete) {
-      const timeToSave = Number(actualMinutes) > 0 
-        ? Number(actualMinutes) 
-        : (task.scheduleTask?.estimatedMinutes || 30);
-      onToggleComplete(task.scheduleTask._id, timeToSave, true);
+  const handleComplete = async () => {
+    const timeToSave = Number(actualMinutes) > 0 
+      ? Number(actualMinutes) 
+      : (task.scheduleTask?.estimatedMinutes || 30);
+
+    try {
+      setIsSaving(true);
+      await completeStudyMaterial(task.scheduleTask._id, enrollmentId, timeToSave);
+      setIsSaving(false);
+      setJustUnlockedQuiz(true);
+      if (onStudyCompleted) onStudyCompleted();
+      if (!hasMCQs) {
+        if (onToggleComplete) {
+          onToggleComplete(task.scheduleTask._id, timeToSave, true);
+        }
+        onClose();
+      }
+    } catch (err) {
+      console.error(err);
+      setIsSaving(false);
+      // Fallback
+      if (onToggleComplete) {
+        onToggleComplete(task.scheduleTask._id, timeToSave, true);
+      }
+      onClose();
     }
-    onClose();
   };
 
   return (
@@ -211,21 +234,36 @@ const ReadingMaterialModal = ({ isOpen, onClose, task, enrollmentId, onToggleCom
             </div>
           </div>
 
-          <div className="flex gap-3 ml-auto">
-            <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-700 transition-colors">
+          <div className="flex gap-2.5 ml-auto flex-wrap items-center">
+            <button onClick={onClose} className="px-3.5 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-750 transition-colors">
               Close
             </button>
+            
             <button
               onClick={handleComplete}
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all shadow-md ${
-                isCompleted 
-                  ? 'bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-600/30' 
-                  : 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-indigo-500/20'
+              disabled={isSaving}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-md ${
+                isStudyAlreadyCompleted 
+                  ? 'bg-slate-700 hover:bg-slate-650 text-slate-200 border border-slate-600' 
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20'
               }`}
             >
-              <CheckCircle2 size={16} />
-              <span>{isCompleted ? 'Update Time & Done' : 'Mark as Completed'}</span>
+              <CheckCircle2 size={16} className={isStudyAlreadyCompleted ? 'text-emerald-400' : ''} />
+              <span>{isSaving ? 'Saving...' : isStudyAlreadyCompleted ? 'Update Study Time' : hasMCQs ? 'Complete & Unlock Quiz' : 'Mark as Completed'}</span>
             </button>
+
+            {hasMCQs && isStudyAlreadyCompleted && onProceedToQuiz && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onProceedToQuiz();
+                }}
+                className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white shadow-lg shadow-emerald-500/25 animate-pulse"
+              >
+                <span>Take Quiz (10 Qs, 40 min)</span>
+                <ArrowRight size={16} />
+              </button>
+            )}
           </div>
         </div>
       </div>

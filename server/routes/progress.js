@@ -73,17 +73,89 @@ router.get('/:enrollmentId', async (req, res) => {
         completed: p ? p.completed : false,
         completedAt: p ? p.completedAt : null,
         actualMinutes: p ? p.actualMinutes : null,
+        studyCompleted: p ? (p.studyCompleted || false) : false,
+        studyMinutes: p ? (p.studyMinutes || null) : null,
+        quizMinutes: p ? (p.quizMinutes || null) : null,
         mcqScore: p ? p.mcqScore : null,
         mcqAnswers: p ? p.mcqAnswers : [],
         progress: p || {
           completed: false,
           completedAt: null,
-          actualMinutes: null
+          actualMinutes: null,
+          studyCompleted: false,
+          studyMinutes: null,
+          quizMinutes: null
         }
       };
     });
 
     res.json(result);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   POST /api/progress/study-complete
+// @desc    Mark study material as completed with actual reading time, unlock quiz
+router.post('/study-complete', async (req, res) => {
+  try {
+    const { scheduleTaskId, enrollmentId, studyMinutes } = req.body;
+
+    const [enrollment, task] = await Promise.all([
+      Enrollment.findOne({
+        _id: enrollmentId,
+        userId: req.user.userId
+      }).select('_id'),
+      ScheduleTask.findById(scheduleTaskId).select('mcqs estimatedMinutes').lean()
+    ]);
+
+    if (!enrollment) {
+      return res.status(404).json({ message: 'Enrollment not found' });
+    }
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    let progress = await TaskProgress.findOne({
+      userId: req.user.userId,
+      enrollmentId,
+      scheduleTaskId
+    });
+
+    const sMinutes = Number(studyMinutes) > 0 ? Number(studyMinutes) : (task.estimatedMinutes || 30);
+    const hasQuiz = task.mcqs && task.mcqs.length > 0;
+
+    if (progress) {
+      progress.studyCompleted = true;
+      progress.studyMinutes = sMinutes;
+      // If task has no quiz, completing study notes completes the whole task
+      if (!hasQuiz) {
+        progress.completed = true;
+        progress.completedAt = progress.completedAt || new Date();
+        progress.actualMinutes = sMinutes;
+      } else {
+        // If quiz was already completed, recalculate actualMinutes = studyMinutes + quizMinutes
+        if (progress.completed && progress.quizMinutes) {
+          progress.actualMinutes = sMinutes + progress.quizMinutes;
+        }
+      }
+      await progress.save();
+    } else {
+      progress = new TaskProgress({
+        userId: req.user.userId,
+        enrollmentId,
+        scheduleTaskId,
+        studyCompleted: true,
+        studyMinutes: sMinutes,
+        completed: !hasQuiz,
+        completedAt: !hasQuiz ? new Date() : null,
+        actualMinutes: !hasQuiz ? sMinutes : null
+      });
+      await progress.save();
+    }
+
+    res.json(progress);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -127,6 +199,8 @@ router.post('/toggle', async (req, res) => {
       progress.completedAt = progress.completed ? (progress.completedAt || new Date()) : null;
       if (progress.completed) {
         progress.actualMinutes = timeSpent;
+      } else {
+        progress.actualMinutes = null;
       }
       await progress.save();
     } else {
@@ -150,7 +224,7 @@ router.post('/toggle', async (req, res) => {
 });
 
 // @route   POST /api/progress/submit-mcq
-// @desc    Submit MCQ answers, calculate score, mark completed
+// @desc    Submit MCQ answers, calculate score, mark completed, compute total time (study + quiz)
 router.post('/submit-mcq', async (req, res) => {
   try {
     const { scheduleTaskId, enrollmentId, userAnswers, actualMinutes } = req.body;
@@ -196,12 +270,15 @@ router.post('/submit-mcq', async (req, res) => {
       scheduleTaskId
     });
 
-    const timeSpent = actualMinutes || task.estimatedMinutes || 20;
+    const quizTimeSpent = Number(actualMinutes) > 0 ? Number(actualMinutes) : (task.estimatedMinutes || 20);
 
     if (progress) {
       progress.completed = true;
       progress.completedAt = new Date();
-      progress.actualMinutes = timeSpent;
+      progress.quizMinutes = quizTimeSpent;
+      // Total actual time = studyMinutes + quizMinutes
+      const totalTime = (progress.studyMinutes || 0) + quizTimeSpent;
+      progress.actualMinutes = totalTime;
       progress.mcqScore = {
         score: correctCount,
         total: totalQuestions,
@@ -216,7 +293,10 @@ router.post('/submit-mcq', async (req, res) => {
         scheduleTaskId,
         completed: true,
         completedAt: new Date(),
-        actualMinutes: timeSpent,
+        studyCompleted: false,
+        studyMinutes: null,
+        quizMinutes: quizTimeSpent,
+        actualMinutes: quizTimeSpent,
         mcqScore: {
           score: correctCount,
           total: totalQuestions,

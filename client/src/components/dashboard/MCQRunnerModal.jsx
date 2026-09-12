@@ -8,8 +8,8 @@ const MCQRunnerModal = ({ isOpen, onClose, task, enrollmentId, onSubmitted }) =>
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   
-  // Timer states
-  const timeLimitMinutes = task?.scheduleTask?.estimatedMinutes || 10;
+  // Timer states (40 minutes assigned for assessment quiz as required)
+  const timeLimitMinutes = 40;
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(timeLimitMinutes * 60);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [autoSubmitted, setAutoSubmitted] = useState(false);
@@ -286,6 +286,27 @@ const MCQRunnerModal = ({ isOpen, onClose, task, enrollmentId, onSubmitted }) =>
             >
               Previous
             </button>
+
+            {/* Quick jump question numbers for 10-question assessment */}
+            <div className="hidden sm:flex gap-1.5 flex-wrap max-w-sm justify-center">
+              {mcqs.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setCurrentIdx(i)}
+                  className={`w-7 h-7 rounded-md text-xs font-bold transition-all ${
+                    currentIdx === i
+                      ? 'bg-indigo-500 text-white ring-2 ring-indigo-400'
+                      : userAnswers[i] !== undefined
+                      ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/50'
+                      : 'bg-slate-700/80 text-slate-400 hover:bg-slate-600'
+                  }`}
+                  title={`Jump to Q${i + 1}${userAnswers[i] !== undefined ? ' (Answered)' : ''}`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
 
             <div className="flex gap-2">
               {currentIdx < mcqs.length - 1 ? (

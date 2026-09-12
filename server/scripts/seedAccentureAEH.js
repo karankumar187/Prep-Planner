@@ -9,6 +9,11 @@ const TaskProgress = require('../models/TaskProgress');
 const TARGET_EMAIL = 'karankumar23@lpu.in';
 const SCHEDULE_ID = '6aa45b7c82d03cff80899ac6';
 
+const technicalTasks = require('./accenture_content/technical');
+const coreCSTasks = require('./accenture_content/core_cs');
+const javaTasks = require('./accenture_content/java_track');
+const cppTasks = require('./accenture_content/cpp_track');
+
 const tasksData = [
   // ==================== DAY 1 ====================
   {
@@ -1689,8 +1694,12 @@ async function seed() {
     const deletedTasks = await ScheduleTask.deleteMany({ scheduleId: schedule._id });
     console.log(`🗑️ Cleared ${deletedTasks.deletedCount} existing tasks for schedule.`);
 
-    // 4. Insert all curated tasks
-    const tasksToInsert = tasksData.map(t => ({
+    // 4. Insert all curated tasks (60 DSA/SQL + 29 Rich Technical/Core CS/Java/C++ modules with 10 MCQs each)
+    const codingTasks = tasksData.filter(t => t.category === 'DSA' || t.category === 'SQL');
+    const richNonCoding = [...technicalTasks, ...coreCSTasks, ...javaTasks, ...cppTasks];
+    const combinedTasks = [...codingTasks, ...richNonCoding].sort((a, b) => a.dayNumber - b.dayNumber);
+
+    const tasksToInsert = combinedTasks.map(t => ({
       ...t,
       scheduleId: schedule._id
     }));
@@ -1705,10 +1714,12 @@ async function seed() {
     });
     console.log('📊 Tasks distribution by category:', catCounts);
 
-    // 5. Ensure Enrollment for Karan Kumar starts TODAY
+    // 5. Ensure Enrollment for Karan Kumar starts TODAY in IST (Asia/Kolkata)
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const targetDate = new Date(today);
+    const istStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(today);
+    const [y, m, d] = istStr.split('-').map(Number);
+    const istToday = new Date(Date.UTC(y, m - 1, d));
+    const targetDate = new Date(istToday);
     targetDate.setDate(targetDate.getDate() + 10);
 
     let enrollment = await Enrollment.findOne({ userId: user._id, scheduleId: schedule._id });

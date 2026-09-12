@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pencil, Trash2, Clock, Check, HelpCircle, Trophy, ExternalLink, BookOpen } from 'lucide-react';
+import { Pencil, Trash2, Clock, Check, HelpCircle, Trophy, ExternalLink, BookOpen, Lock } from 'lucide-react';
 import CategoryPill from '../shared/CategoryPill';
 import { PRIORITY_COLORS } from '../../utils/constants';
 import MCQRunnerModal from './MCQRunnerModal';
@@ -18,14 +18,17 @@ const TaskCard = ({ task, enrollmentId, onToggleComplete, onEdit, onDelete, onMC
   const mcqScore = task.mcqScore;
   const resourceLink = task.scheduleTask.link;
 
+  const isStudyCompleted = !!task.studyCompleted || (task.completed && (!hasMCQs || (task.mcqScore && task.mcqScore.total > 0)));
+  const isQuizUnlocked = !hasReading || isStudyCompleted;
+
   const handleToggle = () => {
-    // Only force opening reader modal for pure reading tasks
-    if (task.scheduleTask.taskType === 'reading' && !isCompleted) {
+    // If has reading and study material is not yet completed, open reader
+    if (hasReading && !isStudyCompleted && !isCompleted) {
       setIsReadingOpen(true);
       return;
     }
-    // Only force opening quiz runner for pure assessment tasks
-    if (task.scheduleTask.taskType === 'assessment' && hasMCQs && !isCompleted) {
+    // If has quiz and study notes are completed but quiz not yet taken, open quiz
+    if (hasMCQs && isStudyCompleted && !isCompleted && (!mcqScore || mcqScore.total === 0)) {
       setIsMCQOpen(true);
       return;
     }
@@ -120,8 +123,22 @@ const TaskCard = ({ task, enrollmentId, onToggleComplete, onEdit, onDelete, onMC
                   title="Click to edit actual study time"
                 >
                   <Clock size={10} />
-                  <span>{task.actualMinutes}m actual (click to edit)</span>
+                  <span>
+                    {task.studyMinutes && task.quizMinutes 
+                      ? `Study: ${task.studyMinutes}m + Quiz: ${task.quizMinutes}m = ${task.actualMinutes}m actual`
+                      : `${task.actualMinutes}m actual`} (click to edit)
+                  </span>
                 </button>
+              )}
+
+              {!isCompleted && isStudyCompleted && task.studyMinutes && (
+                <span 
+                  className="flex items-center gap-1 font-mono text-[11px] text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20"
+                  title="Study material logged; complete quiz to finish task"
+                >
+                  <Clock size={10} />
+                  <span>Study: {task.studyMinutes}m logged (Quiz pending)</span>
+                </span>
               )}
 
               {/* Reading Material Button */}
@@ -129,36 +146,52 @@ const TaskCard = ({ task, enrollmentId, onToggleComplete, onEdit, onDelete, onMC
                 <button
                   type="button"
                   onClick={() => setIsReadingOpen(true)}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30 hover:bg-purple-500/25 transition-colors"
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold transition-colors ${
+                    isStudyCompleted 
+                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30' 
+                      : 'bg-purple-500/15 text-purple-300 border border-purple-500/30 hover:bg-purple-500/25'
+                  }`}
                 >
                   <BookOpen size={11} className="text-purple-400" />
-                  <span>Study Notes</span>
+                  <span>Study Notes {isStudyCompleted ? '✓' : ''}</span>
                 </button>
               )}
 
-              {/* MCQ Assessment Quiz Button */}
+              {/* MCQ Assessment Quiz Button (Locked until study notes are completed) */}
               {hasMCQs && (
-                <button
-                  type="button"
-                  onClick={() => setIsMCQOpen(true)}
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold transition-colors ${
-                    mcqScore && mcqScore.total > 0
-                      ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25'
-                      : 'bg-rose-500/15 text-rose-300 border border-rose-500/30 hover:bg-rose-500/25'
-                  }`}
-                >
-                  {mcqScore && mcqScore.total > 0 ? (
-                    <>
-                      <Trophy size={11} className="text-emerald-400" />
-                      <span>Quiz: {mcqScore.score}/{mcqScore.total} ({mcqScore.percentage}%)</span>
-                    </>
-                  ) : (
-                    <>
-                      <HelpCircle size={11} className="text-rose-400" />
-                      <span>Take Quiz ({task.scheduleTask.mcqs.length} Qs)</span>
-                    </>
-                  )}
-                </button>
+                isQuizUnlocked ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsMCQOpen(true)}
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold transition-colors ${
+                      mcqScore && mcqScore.total > 0
+                        ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25'
+                        : 'bg-rose-500/15 text-rose-300 border border-rose-500/30 hover:bg-rose-500/25'
+                    }`}
+                  >
+                    {mcqScore && mcqScore.total > 0 ? (
+                      <>
+                        <Trophy size={11} className="text-emerald-400" />
+                        <span>Quiz: {mcqScore.score}/{mcqScore.total} ({mcqScore.percentage}%)</span>
+                      </>
+                    ) : (
+                      <>
+                        <HelpCircle size={11} className="text-rose-400" />
+                        <span>Take Quiz ({task.scheduleTask.mcqs.length} Qs)</span>
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsReadingOpen(true)}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-800 text-slate-400 border border-slate-700 hover:border-amber-500/40 hover:text-amber-300 transition-colors cursor-pointer"
+                    title="Complete study notes and enter reading time first to unlock this quiz"
+                  >
+                    <Lock size={11} className="text-amber-400" />
+                    <span>Quiz Locked ({task.scheduleTask.mcqs.length} Qs)</span>
+                  </button>
+                )
               )}
             </div>
 
@@ -244,6 +277,8 @@ const TaskCard = ({ task, enrollmentId, onToggleComplete, onEdit, onDelete, onMC
         task={task}
         enrollmentId={enrollmentId}
         onToggleComplete={onToggleComplete}
+        onProceedToQuiz={() => setIsMCQOpen(true)}
+        onStudyCompleted={onMCQSubmitted}
       />
     </>
   );
