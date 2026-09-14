@@ -8,7 +8,7 @@ import { AuthContext } from '../context/AuthContext';
 import { getProgress, toggleComplete, addScheduleTask, updateScheduleTask, deleteScheduleTask } from '../utils/api';
 import { isUserCreator } from '../utils/constants';
 import { format } from 'date-fns';
-import { Plus, HelpCircle, Calendar as CalendarIcon, CheckCircle2, Clock } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, CheckCircle2, Clock } from 'lucide-react';
 
 const Calendar = () => {
   const { selectedEnrollment } = useContext(AppContext);
@@ -23,7 +23,6 @@ const Calendar = () => {
   // Creator task editing state
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [defaultType, setDefaultType] = useState('task');
 
   useEffect(() => {
     if (selectedEnrollment) {
@@ -105,8 +104,7 @@ const Calendar = () => {
     }
   };
 
-  const openForm = (type, taskToEdit = null) => {
-    setDefaultType(type);
+  const openForm = (taskToEdit = null) => {
     setEditingTask(taskToEdit);
     setIsTaskFormOpen(true);
   };
@@ -147,22 +145,13 @@ const Calendar = () => {
         </div>
 
         {isCreator && (
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => openForm('task')}
-              className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-xl font-semibold shadow-md shadow-indigo-600/20 transition-all active:scale-95"
-            >
-              <Plus size={14} />
-              <span>Add Task</span>
-            </button>
-            <button 
-              onClick={() => openForm('assessment')}
-              className="flex items-center gap-1.5 text-xs bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white px-3 py-1.5 rounded-xl font-semibold shadow-md shadow-rose-600/20 transition-all active:scale-95"
-            >
-              <HelpCircle size={14} />
-              <span>Add Quiz</span>
-            </button>
-          </div>
+          <button 
+            onClick={() => openForm()}
+            className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-xl font-semibold shadow-md shadow-indigo-600/20 transition-all active:scale-95"
+          >
+            <Plus size={14} />
+            <span>Add Task</span>
+          </button>
         )}
       </div>
       
@@ -272,18 +261,12 @@ const Calendar = () => {
                     <p className="font-medium text-slate-300">No tasks for Day {currentDayNum}</p>
                     <p className="text-[11px] text-slate-500 mt-0.5 mb-3">You can add custom tasks below.</p>
                     {isCreator && (
-                      <div className="flex justify-center gap-2">
+                      <div className="flex justify-center">
                         <button 
-                          onClick={() => openForm('task')} 
-                          className="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded-lg font-semibold hover:bg-indigo-500/30 transition-colors"
+                          onClick={() => openForm()} 
+                          className="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-lg font-semibold hover:bg-indigo-500/30 transition-colors"
                         >
                           + Add Task
-                        </button>
-                        <button 
-                          onClick={() => openForm('assessment')} 
-                          className="text-xs bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2.5 py-1 rounded-lg font-semibold hover:bg-rose-500/30 transition-colors"
-                        >
-                          + Add Quiz
                         </button>
                       </div>
                     )}
@@ -305,7 +288,7 @@ const Calendar = () => {
                       enrollmentId={selectedEnrollment._id}
                       onToggleComplete={handleToggle}
                       onMCQSubmitted={() => { fetchDayData(); fetchMonthData(); }}
-                      onEdit={isCreator ? (t) => openForm(t.category === 'MCQ Assessment' || (t.mcqs && t.mcqs.length > 0) ? 'assessment' : 'task', t) : null}
+                      onEdit={isCreator ? (t) => openForm(t) : null}
                       onDelete={isCreator ? handleDelete : null}
                     />
                   ))}
@@ -322,7 +305,6 @@ const Calendar = () => {
         onSubmit={handleTaskSubmit}
         initialData={editingTask}
         dayNumber={currentDayNum}
-        defaultTaskType={defaultType}
       />
     </div>
   );

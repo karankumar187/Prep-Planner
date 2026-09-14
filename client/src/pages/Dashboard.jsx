@@ -6,7 +6,7 @@ import GreetingHeader from '../components/dashboard/GreetingHeader';
 import StatCard from '../components/dashboard/StatCard';
 import TaskCard from '../components/dashboard/TaskCard';
 import TaskForm from '../components/dashboard/TaskForm';
-import { ClipboardList, Clock, Flame, TrendingUp, Plus, HelpCircle, BookOpen } from 'lucide-react';
+import { ClipboardList, Clock, Flame, TrendingUp, Plus } from 'lucide-react';
 import { getOverview, getProgress, toggleComplete, addScheduleTask, updateScheduleTask, deleteScheduleTask } from '../utils/api';
 import { isUserCreator } from '../utils/constants';
 import { format } from 'date-fns';
@@ -18,7 +18,6 @@ const Dashboard = () => {
   const [todayTasks, setTodayTasks] = useState([]);
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [defaultType, setDefaultType] = useState('task');
   const [currentDayNum, setCurrentDayNum] = useState(1);
 
   useEffect(() => {
@@ -100,8 +99,7 @@ const Dashboard = () => {
     }
   };
 
-  const openForm = (type, taskToEdit = null) => {
-    setDefaultType(type);
+  const openForm = (taskToEdit = null) => {
     setEditingTask(taskToEdit);
     setIsTaskFormOpen(true);
   };
@@ -137,45 +135,26 @@ const Dashboard = () => {
           <p className="text-sm text-slate-400">Day {currentDayNum}</p>
         </div>
         {isCreator && (
-          <div className="flex gap-2 flex-wrap">
-            <button 
-              onClick={() => openForm('task')}
-              className="flex items-center gap-1.5 text-xs md:text-sm bg-indigo-500 text-white hover:bg-indigo-600 px-3 py-1.5 rounded-lg font-medium transition-colors shadow"
-            >
-              <Plus size={16} />
-              <span>Add Task</span>
-            </button>
-            <button 
-              onClick={() => openForm('reading')}
-              className="flex items-center gap-1.5 text-xs md:text-sm bg-purple-500 text-white hover:bg-purple-600 px-3 py-1.5 rounded-lg font-medium transition-colors shadow"
-            >
-              <BookOpen size={16} />
-              <span>Add Reading</span>
-            </button>
-            <button 
-              onClick={() => openForm('assessment')}
-              className="flex items-center gap-1.5 text-xs md:text-sm bg-rose-500 text-white hover:bg-rose-600 px-3 py-1.5 rounded-lg font-medium transition-colors shadow"
-            >
-              <HelpCircle size={16} />
-              <span>Add Quiz</span>
-            </button>
-          </div>
+          <button 
+            onClick={() => openForm()}
+            className="flex items-center gap-1.5 text-xs md:text-sm bg-indigo-500 text-white hover:bg-indigo-600 px-3.5 py-1.5 rounded-lg font-medium transition-colors shadow"
+          >
+            <Plus size={16} />
+            <span>Add Task</span>
+          </button>
         )}
       </div>
 
       {todayTasks.length === 0 ? (
         <div className="bg-slate-800 rounded-xl p-8 text-center border border-slate-700">
-          <p className="text-slate-400 mb-3">No tasks, reading notes, or assessments assigned for Day {currentDayNum}. Take a break or add items!</p>
+          <p className="text-slate-400 mb-3">No tasks assigned for Day {currentDayNum}. Take a break or add a task!</p>
           {isCreator && (
-            <div className="flex justify-center gap-2 flex-wrap">
-              <button onClick={() => openForm('task')} className="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-lg font-semibold hover:bg-indigo-500/30">
+            <div className="flex justify-center">
+              <button 
+                onClick={() => openForm()} 
+                className="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-3.5 py-1.5 rounded-lg font-semibold hover:bg-indigo-500/30 transition-colors"
+              >
                 + Add Task
-              </button>
-              <button onClick={() => openForm('reading')} className="text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30 px-3 py-1.5 rounded-lg font-semibold hover:bg-purple-500/30">
-                + Add Reading Material
-              </button>
-              <button onClick={() => openForm('assessment')} className="text-xs bg-rose-500/20 text-rose-300 border border-rose-500/30 px-3 py-1.5 rounded-lg font-semibold hover:bg-rose-500/30">
-                + Add MCQ Quiz
               </button>
             </div>
           )}
@@ -189,7 +168,7 @@ const Dashboard = () => {
                 enrollmentId={selectedEnrollment._id}
                 onToggleComplete={handleToggle}
                 onMCQSubmitted={fetchData}
-                onEdit={isCreator ? (t) => openForm(t.taskType || (t.readingContent ? 'reading' : t.category === 'MCQ Assessment' ? 'assessment' : 'task'), t) : null}
+                onEdit={isCreator ? (t) => openForm(t) : null}
                 onDelete={isCreator ? handleDelete : null}
               />
             ))}
@@ -202,7 +181,6 @@ const Dashboard = () => {
         onSubmit={handleTaskSubmit}
         initialData={editingTask}
         dayNumber={currentDayNum}
-        defaultTaskType={defaultType}
       />
     </div>
   );
